@@ -3,14 +3,16 @@ import './App.css';
 
 function App() {
   const [currentView, setCurrentView] = useState('home');
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('banka_token'));
   const [events, setEvents] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [publicEvents, setPublicEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState(null);
   const [networkAdded, setNetworkAdded] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
 
   const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
@@ -27,14 +29,126 @@ function App() {
     blockExplorerUrls: ['https://testnet.bscscan.com/']
   };
 
-  // Fetch events on load
+  // Initialize app
   useEffect(() => {
-    fetchEvents();
     checkAPIHealth();
     checkWalletConnection();
-  }, []);
+    if (token) {
+      loadUserProfile();
+    }
+    loadPublicEvents();
+  }, [token]);
 
-  // Check if wallet is already connected
+  // Load user profile and events
+  const loadUserProfile = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data);
+        setUser(data.user);
+        setEvents(data.events || []);
+      } else if (response.status === 401) {
+        // Token expired
+        logout();
+      }
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+    }
+  };
+
+  const loadPublicEvents = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/events/public`);
+      const data = await response.json();
+      setPublicEvents(data.events || []);
+    } catch (error) {
+      console.error('Failed to load public events:', error);
+    }
+  };
+
+  const checkAPIHealth = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/health`);
+      const data = await response.json();
+      console.log('API Health:', data);
+    } catch (error) {
+      console.error('API Health Check Failed:', error);
+    }
+  };
+
+  // Authentication functions
+  const login = async (email, password) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        setToken(data.token);
+        setUser(data.user);
+        localStorage.setItem('banka_token', data.token);
+        await loadUserProfile();
+        setCurrentView('dashboard');
+        alert('Login realizado com sucesso!');
+      } else {
+        alert('Erro no login: ' + data.detail);
+      }
+    } catch (error) {
+      alert('Erro no login: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  const register = async (userData) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        setToken(data.token);
+        setUser(data.user);
+        localStorage.setItem('banka_token', data.token);
+        await loadUserProfile();
+        setCurrentView('dashboard');
+        alert('Registro realizado com sucesso! Carteira blockchain criada.');
+      } else {
+        alert('Erro no registro: ' + data.detail);
+      }
+    } catch (error) {
+      alert('Erro no registro: ' + error.message);
+    }
+    setLoading(false);
+  };
+
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    setUserProfile(null);
+    setEvents([]);
+    localStorage.removeItem('banka_token');
+    setCurrentView('home');
+  };
+
+  // Wallet connection functions
   const checkWalletConnection = async () => {
     if (typeof window.ethereum !== 'undefined') {
       try {
@@ -50,7 +164,6 @@ function App() {
     }
   };
 
-  // Check if we're on the correct network
   const checkNetwork = async () => {
     try {
       const chainId = await window.ethereum.request({ method: 'eth_chainId' });
@@ -62,7 +175,6 @@ function App() {
     }
   };
 
-  // Connect to MetaMask
   const connectWallet = async () => {
     if (typeof window.ethereum === 'undefined') {
       alert('MetaMask não está instalado! Por favor, instale o MetaMask para continuar.');
@@ -73,7 +185,6 @@ function App() {
     try {
       setLoading(true);
       
-      // Request account access
       const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts',
       });
@@ -91,7 +202,6 @@ function App() {
     }
   };
 
-  // Add BNB Chain Testnet to MetaMask
   const addBNBTestnetNetwork = async () => {
     try {
       await window.ethereum.request({
@@ -112,7 +222,6 @@ function App() {
     }
   };
 
-  // Switch to BNB Chain Testnet
   const switchToBNBTestnet = async () => {
     try {
       await window.ethereum.request({
@@ -123,52 +232,31 @@ function App() {
     } catch (error) {
       console.error('Error switching network:', error);
       if (error.code === 4902) {
-        // Network not added yet, add it
         await addBNBTestnetNetwork();
       }
     }
   };
 
-  // Get testnet BNB from faucet
   const openFaucet = () => {
     window.open('https://testnet.binance.org/faucet-smart', '_blank');
   };
 
-  const checkAPIHealth = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/health`);
-      const data = await response.json();
-      console.log('API Health:', data);
-    } catch (error) {
-      console.error('API Health Check Failed:', error);
-    }
-  };
-
-  const fetchEvents = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/events`);
-      const data = await response.json();
-      setEvents(data.events || []);
-    } catch (error) {
-      console.error('Failed to fetch events:', error);
-    }
-  };
-
+  // Event management functions
   const createEvent = async (eventData) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/organizers/events`, {
+      const response = await fetch(`${API_BASE}/api/events`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(eventData),
       });
       const data = await response.json();
       if (response.ok) {
         alert('Evento criado com sucesso!');
-        fetchEvents();
-        setCurrentView('organizer');
+        await loadUserProfile();
       } else {
         alert('Erro ao criar evento: ' + data.detail);
       }
@@ -185,13 +273,14 @@ function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(tokenData),
       });
       const data = await response.json();
       if (response.ok) {
         alert('Token criado com sucesso!');
-        fetchEvents();
+        await loadUserProfile();
       } else {
         alert('Erro ao criar token: ' + data.detail);
       }
@@ -201,88 +290,51 @@ function App() {
     setLoading(false);
   };
 
-  const registerUser = async (userData) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/users/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        alert('Usuário registrado com sucesso!');
-        setSelectedUser(data);
-        setCurrentView('user');
-      } else {
-        alert('Erro ao registrar usuário: ' + data.detail);
-      }
-    } catch (error) {
-      alert('Erro ao registrar usuário: ' + error.message);
-    }
-    setLoading(false);
-  };
-
-  const purchaseTokens = async (userId, tokenAddress, amount) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/users/${userId}/purchase`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token_address: tokenAddress,
-          amount: parseInt(amount)
-        }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        alert('Tokens comprados com sucesso!');
-      } else {
-        alert('Erro ao comprar tokens: ' + data.detail);
-      }
-    } catch (error) {
-      alert('Erro ao comprar tokens: ' + error.message);
-    }
-    setLoading(false);
-  };
-
-  const transferTokens = async (userId, toAddress, tokenAddress, amount) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/users/${userId}/transfer`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to_address: toAddress,
-          token_address: tokenAddress,
-          amount: parseInt(amount)
-        }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        alert('Pagamento realizado com sucesso!');
-      } else {
-        alert('Erro ao realizar pagamento: ' + data.detail);
-      }
-    } catch (error) {
-      alert('Erro ao realizar pagamento: ' + error.message);
-    }
-    setLoading(false);
-  };
-
   // Home Page Component
   const HomePage = () => (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
       <div className="container mx-auto px-4 py-16">
-        {/* Wallet Connection Section */}
-        <div className="absolute top-4 right-4">
-          {!walletConnected ? (
+        {/* Header with Auth */}
+        <div className="absolute top-4 right-4 flex items-center space-x-4">
+          {!user ? (
+            <>
+              <button
+                onClick={() => setCurrentView('login')}
+                className="px-6 py-2 text-white border border-white/30 rounded-lg hover:bg-white/10 transition-all"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => setCurrentView('register')}
+                className="px-6 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600 transition-all font-medium"
+              >
+                Registrar
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center space-x-4">
+              <div className="text-white text-sm">
+                Olá, {user.name}
+              </div>
+              <button
+                onClick={() => setCurrentView('profile')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Perfil
+              </button>
+              <button
+                onClick={logout}
+                className="px-4 py-2 text-white border border-white/30 rounded-lg hover:bg-red-500/20"
+              >
+                Sair
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Wallet Connection for non-authenticated users */}
+        {!user && !walletConnected && (
+          <div className="absolute top-4 left-4">
             <button
               onClick={connectWallet}
               disabled={loading}
@@ -290,32 +342,8 @@ function App() {
             >
               {loading ? '🔄 Conectando...' : '🦊 Conectar MetaMask'}
             </button>
-          ) : (
-            <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 text-white">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                <span className="text-sm">Carteira Conectada</span>
-              </div>
-              <div className="text-xs opacity-80">
-                {walletAddress?.substr(0, 6)}...{walletAddress?.substr(-4)}
-              </div>
-              {!networkAdded && (
-                <button
-                  onClick={switchToBNBTestnet}
-                  className="mt-2 text-xs bg-orange-500 hover:bg-orange-600 px-3 py-1 rounded text-white"
-                >
-                  Trocar para BNB Testnet
-                </button>
-              )}
-              {networkAdded && (
-                <div className="flex items-center space-x-1 mt-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span className="text-xs">BNB Testnet</span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-white mb-6">
@@ -328,140 +356,450 @@ function App() {
             Revolucione a experiência de pagamento em eventos com tokens digitais seguros na blockchain.
             Sem filas, sem dinheiro físico, apenas tecnologia.
           </p>
-
-          {/* Blockchain Setup Instructions */}
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 max-w-4xl mx-auto mb-8">
-            <h3 className="text-xl font-bold text-white mb-4">🔗 Setup Blockchain</h3>
-            <div className="grid md:grid-cols-3 gap-4 text-left">
-              <div className="bg-white/5 rounded-lg p-4">
-                <div className="text-3xl mb-2">🦊</div>
-                <h4 className="font-bold text-white mb-2">1. MetaMask</h4>
-                <p className="text-blue-200 text-sm mb-3">
-                  Instale a extensão MetaMask e conecte sua carteira
-                </p>
-                {!walletConnected ? (
-                  <button
-                    onClick={connectWallet}
-                    disabled={loading}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
-                  >
-                    {loading ? 'Conectando...' : 'Conectar'}
-                  </button>
-                ) : (
-                  <div className="text-green-400 text-sm">✅ Conectado</div>
-                )}
-              </div>
-
-              <div className="bg-white/5 rounded-lg p-4">
-                <div className="text-3xl mb-2">⚙️</div>
-                <h4 className="font-bold text-white mb-2">2. Rede Testnet</h4>
-                <p className="text-blue-200 text-sm mb-3">
-                  Configure a BNB Chain Testnet automaticamente
-                </p>
-                {!networkAdded ? (
-                  <button
-                    onClick={addBNBTestnetNetwork}
-                    disabled={!walletConnected}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
-                  >
-                    Adicionar Rede
-                  </button>
-                ) : (
-                  <div className="text-green-400 text-sm">✅ Configurado</div>
-                )}
-              </div>
-
-              <div className="bg-white/5 rounded-lg p-4">
-                <div className="text-3xl mb-2">💰</div>
-                <h4 className="font-bold text-white mb-2">3. tBNB Grátis</h4>
-                <p className="text-blue-200 text-sm mb-3">
-                  Obtenha BNB de teste gratuito para transações
-                </p>
-                <button
-                  onClick={openFaucet}
-                  disabled={!networkAdded}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
-                >
-                  Obter tBNB
-                </button>
-              </div>
-            </div>
-            
-            {walletConnected && networkAdded && (
-              <div className="mt-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-green-300 font-medium">
-                    ✅ Pronto para usar BanKa na blockchain!
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          <div 
-            onClick={() => setCurrentView('organizer')}
-            className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center cursor-pointer hover:bg-white/20 transition-all duration-300 hover:scale-105"
-          >
-            <div className="text-6xl mb-4">🎪</div>
-            <h3 className="text-2xl font-bold text-white mb-4">Organizador</h3>
-            <p className="text-blue-200">
-              Crie eventos, gerencie tokens e monitore vendas em tempo real
-            </p>
-          </div>
+        {user ? (
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div 
+              onClick={() => setCurrentView('dashboard')}
+              className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center cursor-pointer hover:bg-white/20 transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-6xl mb-4">🎪</div>
+              <h3 className="text-2xl font-bold text-white mb-4">Meus Eventos</h3>
+              <p className="text-blue-200">
+                Gerencie seus eventos e tokens
+              </p>
+            </div>
 
-          <div 
-            onClick={() => setCurrentView('participant')}
-            className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center cursor-pointer hover:bg-white/20 transition-all duration-300 hover:scale-105"
-          >
-            <div className="text-6xl mb-4">🎫</div>
-            <h3 className="text-2xl font-bold text-white mb-4">Participante</h3>
-            <p className="text-blue-200">
-              Compre tokens, pague vendedores e gerencie sua carteira digital
-            </p>
-          </div>
-        </div>
+            <div 
+              onClick={() => setCurrentView('marketplace')}
+              className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center cursor-pointer hover:bg-white/20 transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-6xl mb-4">🎫</div>
+              <h3 className="text-2xl font-bold text-white mb-4">Marketplace</h3>
+              <p className="text-blue-200">
+                Compre tokens de eventos
+              </p>
+            </div>
 
-        <div className="mt-16 text-center">
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="text-4xl mb-4">⚡</div>
-              <h4 className="text-xl font-bold text-white mb-2">Instantâneo</h4>
-              <p className="text-blue-300">Pagamentos em segundos via QR Code</p>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl mb-4">🔒</div>
-              <h4 className="text-xl font-bold text-white mb-2">Seguro</h4>
-              <p className="text-blue-300">Blockchain BNB Chain para máxima segurança</p>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl mb-4">📱</div>
-              <h4 className="text-xl font-bold text-white mb-2">Simples</h4>
-              <p className="text-blue-300">Interface intuitiva para todos</p>
+            <div 
+              onClick={() => setCurrentView('profile')}
+              className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center cursor-pointer hover:bg-white/20 transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-6xl mb-4">👤</div>
+              <h3 className="text-2xl font-bold text-white mb-4">Perfil</h3>
+              <p className="text-blue-200">
+                Carteira e configurações
+              </p>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div 
+              onClick={() => setCurrentView('register')}
+              className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center cursor-pointer hover:bg-white/20 transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-6xl mb-4">🎪</div>
+              <h3 className="text-2xl font-bold text-white mb-4">Organizador</h3>
+              <p className="text-blue-200">
+                Crie eventos, gerencie tokens e monitore vendas
+              </p>
+            </div>
 
-        {/* Blockchain Info Footer */}
-        <div className="mt-16 text-center">
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 max-w-2xl mx-auto">
-            <h4 className="text-lg font-bold text-white mb-3">🔗 Informações da Blockchain</h4>
-            <div className="text-sm text-blue-200 space-y-1">
-              <p><strong>Rede:</strong> BNB Smart Chain Testnet</p>
-              <p><strong>Chain ID:</strong> 97</p>
-              <p><strong>Explorer:</strong> <a href="https://testnet.bscscan.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">testnet.bscscan.com</a></p>
-              <p><strong>Faucet:</strong> <a href="https://testnet.binance.org/faucet-smart" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">testnet.binance.org/faucet-smart</a></p>
+            <div 
+              onClick={() => setCurrentView('marketplace')}
+              className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center cursor-pointer hover:bg-white/20 transition-all duration-300 hover:scale-105"
+            >
+              <div className="text-6xl mb-4">🎫</div>
+              <h3 className="text-2xl font-bold text-white mb-4">Participante</h3>
+              <p className="text-blue-200">
+                Compre tokens e pague vendedores
+              </p>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 
-  // Organizer Dashboard
-  const OrganizerDashboard = () => {
+  // Login Component
+  const LoginPage = () => {
+    const [formData, setFormData] = useState({ email: '', password: '' });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      login(formData.email, formData.password);
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+          <div className="text-center mb-6">
+            <h2 className="text-3xl font-bold text-gray-800">Login</h2>
+            <p className="text-gray-600 mt-2">Entre na sua conta BanKa</p>
+          </div>
+          
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <input
+                type="email"
+                required
+                className="w-full p-3 border rounded-lg"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+              />
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">Senha</label>
+              <input
+                type="password"
+                required
+                className="w-full p-3 border rounded-lg"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+              />
+            </div>
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium mb-4"
+            >
+              {loading ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+          
+          <div className="text-center">
+            <button
+              onClick={() => setCurrentView('register')}
+              className="text-blue-600 hover:underline"
+            >
+              Não tem conta? Registre-se
+            </button>
+            <br />
+            <button
+              onClick={() => setCurrentView('home')}
+              className="text-gray-600 hover:underline mt-2"
+            >
+              ← Voltar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Register Component
+  const RegisterPage = () => {
+    const [formData, setFormData] = useState({
+      name: '',
+      email: '',
+      password: '',
+      phone: ''
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      register(formData);
+    };
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+          <div className="text-center mb-6">
+            <h2 className="text-3xl font-bold text-gray-800">Registrar</h2>
+            <p className="text-gray-600 mt-2">Crie sua conta BanKa com carteira blockchain</p>
+          </div>
+          
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Nome Completo</label>
+              <input
+                type="text"
+                required
+                className="w-full p-3 border rounded-lg"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <input
+                type="email"
+                required
+                className="w-full p-3 border rounded-lg"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Senha (mín. 6 caracteres)</label>
+              <input
+                type="password"
+                required
+                minLength="6"
+                className="w-full p-3 border rounded-lg"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+              />
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">Telefone (opcional)</label>
+              <input
+                type="tel"
+                className="w-full p-3 border rounded-lg"
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+              />
+            </div>
+            
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium mb-4"
+            >
+              {loading ? 'Criando conta...' : 'Criar Conta & Carteira'}
+            </button>
+          </form>
+          
+          <div className="text-center">
+            <button
+              onClick={() => setCurrentView('login')}
+              className="text-blue-600 hover:underline"
+            >
+              Já tem conta? Faça login
+            </button>
+            <br />
+            <button
+              onClick={() => setCurrentView('home')}
+              className="text-gray-600 hover:underline mt-2"
+            >
+              ← Voltar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Profile Page Component
+  const ProfilePage = () => {
+    const [showPrivateKey, setShowPrivateKey] = useState(false);
+
+    if (!userProfile) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="spinner mb-4"></div>
+            <p>Carregando perfil...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm">
+          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-800">Meu Perfil</h1>
+            <button
+              onClick={() => setCurrentView('home')}
+              className="px-4 py-2 text-blue-600 hover:text-blue-800"
+            >
+              ← Voltar
+            </button>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* User Info */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
+                <h3 className="text-xl font-bold mb-4">Informações Pessoais</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Nome</label>
+                    <p className="text-lg">{userProfile.user.name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Email</label>
+                    <p className="text-lg">{userProfile.user.email}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Membro desde</label>
+                    <p className="text-lg">{new Date(userProfile.user.created_at).toLocaleDateString('pt-BR')}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Telefone</label>
+                    <p className="text-lg">{userProfile.user.phone || 'Não informado'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Blockchain Wallet */}
+              <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
+                <h3 className="text-xl font-bold mb-4">🔗 Carteira Blockchain</h3>
+                
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm opacity-80">Saldo BNB</p>
+                      <p className="text-2xl font-bold">{userProfile.wallet.assets.bnb_balance} tBNB</p>
+                    </div>
+                    <div className="text-4xl">💰</div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Endereço da Carteira</label>
+                    <div className="flex items-center space-x-2">
+                      <p className="text-sm font-mono bg-gray-100 p-2 rounded flex-1">
+                        {userProfile.wallet.address}
+                      </p>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(userProfile.wallet.address)}
+                        className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600">Chave Privada</label>
+                    <div className="flex items-center space-x-2">
+                      <p className="text-sm font-mono bg-gray-100 p-2 rounded flex-1">
+                        {showPrivateKey ? userProfile.wallet.private_key : '••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••'}
+                      </p>
+                      <button
+                        onClick={() => setShowPrivateKey(!showPrivateKey)}
+                        className="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
+                      >
+                        {showPrivateKey ? '🙈' : '👁️'}
+                      </button>
+                      {showPrivateKey && (
+                        <button
+                          onClick={() => navigator.clipboard.writeText(userProfile.wallet.private_key)}
+                          className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                        >
+                          Copiar
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-red-600 mt-1">
+                      ⚠️ Nunca compartilhe sua chave privada com ninguém!
+                    </p>
+                  </div>
+
+                  <div className="flex space-x-3">
+                    <a
+                      href={`https://testnet.bscscan.com/address/${userProfile.wallet.address}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                    >
+                      Ver no BSCScan
+                    </a>
+                    <button
+                      onClick={openFaucet}
+                      className="px-4 py-2 bg-yellow-500 text-black rounded hover:bg-yellow-600 text-sm"
+                    >
+                      Obter tBNB Grátis
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Token Assets */}
+              <div className="bg-white rounded-xl shadow-sm border p-6">
+                <h3 className="text-xl font-bold mb-4">🎫 Meus Tokens</h3>
+                {userProfile.wallet.assets.tokens && userProfile.wallet.assets.tokens.length > 0 ? (
+                  <div className="grid gap-4">
+                    {userProfile.wallet.assets.tokens.map((token, index) => (
+                      <div key={index} className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-bold">{token.name}</h4>
+                            <p className="text-sm text-gray-600">{token.event_name}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold">{token.balance}</p>
+                            <p className="text-sm text-gray-600">tokens</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">Nenhum token encontrado</p>
+                )}
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Events Summary */}
+              <div className="bg-white rounded-xl shadow-sm border p-6">
+                <h3 className="text-lg font-bold mb-4">📊 Meus Eventos</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Eventos criados:</span>
+                    <span className="font-bold">{userProfile.events.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Eventos ativos:</span>
+                    <span className="font-bold">
+                      {userProfile.events.filter(e => e.is_active).length}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCurrentView('dashboard')}
+                  className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Gerenciar Eventos
+                </button>
+              </div>
+
+              {/* Recent Transactions */}
+              <div className="bg-white rounded-xl shadow-sm border p-6">
+                <h3 className="text-lg font-bold mb-4">💳 Transações Recentes</h3>
+                {userProfile.recent_transactions && userProfile.recent_transactions.length > 0 ? (
+                  <div className="space-y-3">
+                    {userProfile.recent_transactions.slice(0, 5).map((tx, index) => (
+                      <div key={index} className="border-b pb-2 last:border-b-0">
+                        <div className="flex justify-between">
+                          <span className="text-sm">
+                            {tx.type === 'purchase' ? '💰 Compra' : '📤 Transferência'}
+                          </span>
+                          <span className="text-sm font-bold">{tx.amount}</span>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {new Date(tx.timestamp).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">Nenhuma transação</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Dashboard Component (simplified for space)
+  const DashboardPage = () => {
     const [showCreateEvent, setShowCreateEvent] = useState(false);
     const [showCreateToken, setShowCreateToken] = useState(false);
 
@@ -469,7 +807,8 @@ function App() {
       const [formData, setFormData] = useState({
         name: '',
         date: '',
-        description: ''
+        description: '',
+        location: ''
       });
 
       const handleSubmit = (e) => {
@@ -479,7 +818,7 @@ function App() {
           date: new Date(formData.date).toISOString()
         });
         setShowCreateEvent(false);
-        setFormData({ name: '', date: '', description: '' });
+        setFormData({ name: '', date: '', description: '', location: '' });
       };
 
       return (
@@ -505,6 +844,15 @@ function App() {
                   className="w-full p-3 border rounded-lg"
                   value={formData.date}
                   onChange={(e) => setFormData({...formData, date: e.target.value})}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Local</label>
+                <input
+                  type="text"
+                  className="w-full p-3 border rounded-lg"
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
                 />
               </div>
               <div className="mb-6">
@@ -542,7 +890,8 @@ function App() {
       const [formData, setFormData] = useState({
         name: '',
         price_cents: '',
-        initial_supply: ''
+        initial_supply: '',
+        sale_mode: 'both'
       });
 
       const handleSubmit = (e) => {
@@ -553,7 +902,7 @@ function App() {
           initial_supply: parseInt(formData.initial_supply)
         });
         setShowCreateToken(false);
-        setFormData({ name: '', price_cents: '', initial_supply: '' });
+        setFormData({ name: '', price_cents: '', initial_supply: '', sale_mode: 'both' });
       };
 
       return (
@@ -583,7 +932,7 @@ function App() {
                   onChange={(e) => setFormData({...formData, price_cents: e.target.value})}
                 />
               </div>
-              <div className="mb-6">
+              <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Quantidade Inicial</label>
                 <input
                   type="number"
@@ -593,6 +942,18 @@ function App() {
                   value={formData.initial_supply}
                   onChange={(e) => setFormData({...formData, initial_supply: e.target.value})}
                 />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">Modo de Venda</label>
+                <select
+                  className="w-full p-3 border rounded-lg"
+                  value={formData.sale_mode}
+                  onChange={(e) => setFormData({...formData, sale_mode: e.target.value})}
+                >
+                  <option value="both">Online + Offline</option>
+                  <option value="online">Apenas Online (Crypto)</option>
+                  <option value="offline">Apenas Offline (Caixa)</option>
+                </select>
               </div>
               <div className="flex gap-4">
                 <button
@@ -620,19 +981,27 @@ function App() {
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white shadow-sm">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-800">Painel do Organizador</h1>
-            <button
-              onClick={() => setCurrentView('home')}
-              className="px-4 py-2 text-blue-600 hover:text-blue-800"
-            >
-              ← Voltar
-            </button>
+            <h1 className="text-2xl font-bold text-gray-800">Meus Eventos</h1>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setCurrentView('profile')}
+                className="px-4 py-2 text-blue-600 hover:text-blue-800"
+              >
+                Perfil
+              </button>
+              <button
+                onClick={() => setCurrentView('home')}
+                className="px-4 py-2 text-blue-600 hover:text-blue-800"
+              >
+                ← Home
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold">Meus Eventos</h2>
+            <h2 className="text-3xl font-bold">Dashboard</h2>
             <button
               onClick={() => setShowCreateEvent(true)}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
@@ -648,7 +1017,8 @@ function App() {
                   <div>
                     <h3 className="text-xl font-bold text-gray-800">{event.name}</h3>
                     <p className="text-gray-600">
-                      {new Date(event.date).toLocaleDateString('pt-BR')}
+                      {new Date(event.date).toLocaleDateString('pt-BR')} 
+                      {event.location && ` • ${event.location}`}
                     </p>
                     {event.description && (
                       <p className="text-gray-600 mt-2">{event.description}</p>
@@ -680,6 +1050,16 @@ function App() {
                           <div className="text-sm text-gray-600">
                             Estoque: {token.initial_supply - token.total_sold}
                           </div>
+                          <div className="text-xs mt-1">
+                            <span className={`px-2 py-1 rounded-full ${
+                              token.sale_mode === 'online' ? 'bg-blue-100 text-blue-800' :
+                              token.sale_mode === 'offline' ? 'bg-green-100 text-green-800' :
+                              'bg-purple-100 text-purple-800'
+                            }`}>
+                              {token.sale_mode === 'online' ? 'Online' : 
+                               token.sale_mode === 'offline' ? 'Offline' : 'Online + Offline'}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -710,354 +1090,71 @@ function App() {
     );
   };
 
-  // Participant App
-  const ParticipantApp = () => {
-    const [showRegister, setShowRegister] = useState(!selectedUser);
-    const [showPurchase, setShowPurchase] = useState(false);
-    const [showPayment, setShowPayment] = useState(false);
-
-    const RegisterForm = () => {
-      const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: ''
-      });
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        registerUser(formData);
-        setShowRegister(false);
-      };
-
-      return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-            <h3 className="text-2xl font-bold mb-6">Registrar no BanKa</h3>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Nome Completo</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full p-3 border rounded-lg"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <input
-                  type="email"
-                  required
-                  className="w-full p-3 border rounded-lg"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-              </div>
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Telefone (opcional)</label>
-                <input
-                  type="tel"
-                  className="w-full p-3 border rounded-lg"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
-              >
-                {loading ? 'Registrando...' : 'Criar Carteira'}
-              </button>
-            </form>
-          </div>
+  // Marketplace Component (simplified)
+  const MarketplacePage = () => (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800">Marketplace de Tokens</h1>
+          <button
+            onClick={() => setCurrentView('home')}
+            className="px-4 py-2 text-blue-600 hover:text-blue-800"
+          >
+            ← Voltar
+          </button>
         </div>
-      );
-    };
+      </div>
 
-    const PurchaseForm = () => {
-      const [selectedEventId, setSelectedEventId] = useState('');
-      const [selectedTokenId, setSelectedTokenId] = useState('');
-      const [amount, setAmount] = useState('');
-
-      const selectedEventData = events.find(e => e.id === selectedEventId);
-      const selectedToken = selectedEventData?.tokens?.find(t => t.id === selectedTokenId);
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        if (selectedToken) {
-          purchaseTokens(selectedUser.id, selectedToken.contract_address, amount);
-          setShowPurchase(false);
-          setSelectedEventId('');
-          setSelectedTokenId('');
-          setAmount('');
-        }
-      };
-
-      return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-            <h3 className="text-2xl font-bold mb-6">Comprar Tokens</h3>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Evento</label>
-                <select
-                  required
-                  className="w-full p-3 border rounded-lg"
-                  value={selectedEventId}
-                  onChange={(e) => {
-                    setSelectedEventId(e.target.value);
-                    setSelectedTokenId('');
-                  }}
-                >
-                  <option value="">Selecione um evento</option>
-                  {events.map(event => (
-                    <option key={event.id} value={event.id}>{event.name}</option>
-                  ))}
-                </select>
-              </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid gap-6">
+          {publicEvents.map((event) => (
+            <div key={event.id} className="bg-white rounded-xl shadow-sm border p-6">
+              <h3 className="text-xl font-bold mb-2">{event.name}</h3>
+              <p className="text-gray-600 mb-4">
+                {new Date(event.date).toLocaleDateString('pt-BR')}
+                {event.location && ` • ${event.location}`}
+              </p>
               
-              {selectedEventData && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">Token</label>
-                  <select
-                    required
-                    className="w-full p-3 border rounded-lg"
-                    value={selectedTokenId}
-                    onChange={(e) => setSelectedTokenId(e.target.value)}
-                  >
-                    <option value="">Selecione um token</option>
-                    {selectedEventData.tokens?.map(token => (
-                      <option key={token.id} value={token.id}>
-                        {token.name} - R$ {(token.price_cents / 100).toFixed(2)}
-                      </option>
-                    ))}
-                  </select>
+              {event.tokens && event.tokens.length > 0 && (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {event.tokens.map((token) => (
+                    <div key={token.id} className="bg-gray-50 rounded-lg p-4">
+                      <div className="font-medium">{token.name}</div>
+                      <div className="text-lg font-bold text-green-600">
+                        R$ {(token.price_cents / 100).toFixed(2)}
+                      </div>
+                      <div className="text-sm text-gray-600 mb-2">
+                        Disponível: {token.initial_supply - token.total_sold}
+                      </div>
+                      {user && (
+                        <button className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                          Comprar
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Quantidade</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  className="w-full p-3 border rounded-lg"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-                {selectedToken && amount && (
-                  <p className="text-sm text-gray-600 mt-2">
-                    Total: R$ {((selectedToken.price_cents * parseInt(amount || 0)) / 100).toFixed(2)}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setShowPurchase(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !selectedToken}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? 'Comprando...' : 'Comprar'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      );
-    };
-
-    const PaymentForm = () => {
-      const [vendorAddress, setVendorAddress] = useState('');
-      const [selectedTokenAddress, setSelectedTokenAddress] = useState('');
-      const [amount, setAmount] = useState('');
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        transferTokens(selectedUser.id, vendorAddress, selectedTokenAddress, amount);
-        setShowPayment(false);
-        setVendorAddress('');
-        setSelectedTokenAddress('');
-        setAmount('');
-      };
-
-      return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-            <h3 className="text-2xl font-bold mb-6">Pagar Vendedor</h3>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Endereço do Vendedor</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Escaneie QR Code ou digite"
-                  className="w-full p-3 border rounded-lg"
-                  value={vendorAddress}
-                  onChange={(e) => setVendorAddress(e.target.value)}
-                />
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Token</label>
-                <select
-                  required
-                  className="w-full p-3 border rounded-lg"
-                  value={selectedTokenAddress}
-                  onChange={(e) => setSelectedTokenAddress(e.target.value)}
-                >
-                  <option value="">Selecione um token</option>
-                  {events.map(event => 
-                    event.tokens?.map(token => (
-                      <option key={token.contract_address} value={token.contract_address}>
-                        {token.name} ({event.name})
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Quantidade</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  className="w-full p-3 border rounded-lg"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setShowPayment(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                >
-                  {loading ? 'Pagando...' : 'Pagar'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      );
-    };
-
-    if (!selectedUser) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-green-900 via-blue-900 to-purple-900 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-white mb-8">BanKa Participante</h1>
-            <p className="text-xl text-green-200 mb-8">
-              Registre-se para começar a usar tokens digitais
-            </p>
-            {showRegister && <RegisterForm />}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white shadow-sm">
-          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-bold text-gray-800">Olá, {selectedUser.name}</h1>
-              <p className="text-sm text-gray-600">
-                Carteira: {selectedUser.wallet_address?.substr(0, 10)}...
-              </p>
             </div>
-            <button
-              onClick={() => setCurrentView('home')}
-              className="px-4 py-2 text-blue-600 hover:text-blue-800"
-            >
-              ← Voltar
-            </button>
-          </div>
+          ))}
         </div>
-
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid sm:grid-cols-2 gap-6 mb-8">
-            <button
-              onClick={() => setShowPurchase(true)}
-              className="bg-blue-600 text-white rounded-xl p-6 text-center hover:bg-blue-700 transition-colors"
-            >
-              <div className="text-4xl mb-2">💰</div>
-              <h3 className="text-xl font-bold mb-2">Comprar Tokens</h3>
-              <p className="text-blue-100">Carregue sua carteira com tokens de eventos</p>
-            </button>
-
-            <button
-              onClick={() => setShowPayment(true)}
-              className="bg-green-600 text-white rounded-xl p-6 text-center hover:bg-green-700 transition-colors"
-            >
-              <div className="text-4xl mb-2">📱</div>
-              <h3 className="text-xl font-bold mb-2">Pagar Vendedor</h3>
-              <p className="text-green-100">Escaneie QR code e pague instantaneamente</p>
-            </button>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="text-xl font-bold mb-4">Eventos Disponíveis</h3>
-            {events.length > 0 ? (
-              <div className="grid gap-4">
-                {events.map(event => (
-                  <div key={event.id} className="border rounded-lg p-4">
-                    <h4 className="font-bold">{event.name}</h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {new Date(event.date).toLocaleDateString('pt-BR')}
-                    </p>
-                    {event.tokens && event.tokens.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {event.tokens.map(token => (
-                          <span
-                            key={token.id}
-                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                          >
-                            {token.name} - R$ {(token.price_cents / 100).toFixed(2)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-8">Nenhum evento disponível</p>
-            )}
-          </div>
-        </div>
-
-        {showPurchase && <PurchaseForm />}
-        {showPayment && <PaymentForm />}
       </div>
-    );
-  };
+    </div>
+  );
 
   // Main App Router
   const renderCurrentView = () => {
     switch (currentView) {
-      case 'organizer':
-        return <OrganizerDashboard />;
-      case 'participant':
-        return <ParticipantApp />;
+      case 'login':
+        return <LoginPage />;
+      case 'register':
+        return <RegisterPage />;
+      case 'profile':
+        return user ? <ProfilePage /> : <LoginPage />;
+      case 'dashboard':
+        return user ? <DashboardPage /> : <LoginPage />;
+      case 'marketplace':
+        return <MarketplacePage />;
       default:
         return <HomePage />;
     }

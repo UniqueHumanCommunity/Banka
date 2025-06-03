@@ -8,6 +8,8 @@ import os
 import uuid
 import datetime
 import asyncio
+import jwt
+import hashlib
 from web3 import Web3
 from eth_account import Account
 import json
@@ -16,6 +18,7 @@ import json
 WEB3_PROVIDER_URL = os.environ.get('WEB3_PROVIDER_URL', 'https://bsc-testnet.nodereal.io/v1/e9a36765eb8a40b9bd12e680a1fd2bc5')
 WALLET_MNEMONIC = os.environ.get('WALLET_MNEMONIC', 'flee cluster north scissors random attitude mutual strategy excuse debris consider uniform')
 EVENT_FACTORY_ADDRESS = os.environ.get('EVENT_FACTORY_ADDRESS', '0x0000000000000000000000000000000000000000')
+JWT_SECRET = os.environ.get('JWT_SECRET', 'banka-secret-key-2024')
 
 # Initialize Web3
 try:
@@ -26,76 +29,6 @@ try:
 except Exception as e:
     print(f"Failed to connect to blockchain: {e}")
     w3 = None
-
-# Event Factory ABI (simplified for MVP)
-EVENT_FACTORY_ABI = [
-    {
-        "inputs": [{"internalType": "string", "name": "_eventName", "type": "string"}, 
-                  {"internalType": "uint256", "name": "_eventDate", "type": "uint256"}],
-        "name": "createEvent",
-        "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [{"internalType": "address", "name": "_organizer", "type": "address"}],
-        "name": "getOrganizerEvents",
-        "outputs": [{"components": [{"internalType": "address", "name": "contractAddress", "type": "address"}, 
-                                   {"internalType": "string", "name": "eventName", "type": "string"},
-                                   {"internalType": "uint256", "name": "eventDate", "type": "uint256"},
-                                   {"internalType": "address", "name": "organizer", "type": "address"},
-                                   {"internalType": "bool", "name": "isActive", "type": "bool"},
-                                   {"internalType": "uint256", "name": "createdAt", "type": "uint256"}],
-                    "internalType": "struct EventFactory.Event[]", "name": "", "type": "tuple[]"}],
-        "stateMutability": "view",
-        "type": "function"
-    }
-]
-
-# Event Contract ABI (simplified for MVP)
-EVENT_CONTRACT_ABI = [
-    {
-        "inputs": [{"internalType": "string", "name": "_name", "type": "string"},
-                  {"internalType": "uint256", "name": "_priceInCents", "type": "uint256"},
-                  {"internalType": "uint256", "name": "_initialSupply", "type": "uint256"}],
-        "name": "createToken",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [{"internalType": "address", "name": "_tokenAddress", "type": "address"},
-                  {"internalType": "uint256", "name": "_amount", "type": "uint256"}],
-        "name": "purchaseTokens",
-        "outputs": [],
-        "stateMutability": "payable",
-        "type": "function"
-    },
-    {
-        "inputs": [{"internalType": "address", "name": "_to", "type": "address"},
-                  {"internalType": "address", "name": "_tokenAddress", "type": "address"},
-                  {"internalType": "uint256", "name": "_amount", "type": "uint256"}],
-        "name": "transferTokens",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [{"internalType": "address", "name": "_user", "type": "address"},
-                  {"internalType": "address", "name": "_tokenAddress", "type": "address"}],
-        "name": "getUserTokenBalance",
-        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "getTokenAddresses",
-        "outputs": [{"internalType": "address[]", "name": "", "type": "address[]"}],
-        "stateMutability": "view",
-        "type": "function"
-    }
-]
 
 app = FastAPI(title="BanKa API", description="Blockchain Event Payment System")
 
@@ -117,24 +50,38 @@ db = client.banka_db
 security = HTTPBearer()
 
 # Pydantic models
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserRegister(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: str
+    password: str = Field(..., min_length=6)
+    phone: Optional[str] = None
+
 class EventCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     date: datetime.datetime
     description: Optional[str] = None
+    location: Optional[str] = None
 
 class TokenCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     price_cents: int = Field(..., gt=0)
     initial_supply: int = Field(..., gt=0)
+    sale_mode: str = Field(..., regex="^(online|offline|both)$")  # online, offline, or both
 
-class UserRegister(BaseModel):
-    name: str = Field(..., min_length=1, max_length=100)
-    email: str
-    phone: Optional[str] = None
-
-class TokenPurchase(BaseModel):
+class TokenPurchaseOnline(BaseModel):
     token_address: str
     amount: int = Field(..., gt=0)
+    payment_method: str = Field(..., regex="^(bnb|busd|usdt)$")
+
+class TokenTransferOffline(BaseModel):
+    user_email: str
+    token_address: str
+    amount: int = Field(..., gt=0)
+    cashier_id: str
 
 class TokenTransfer(BaseModel):
     to_address: str
@@ -142,19 +89,97 @@ class TokenTransfer(BaseModel):
     amount: int = Field(..., gt=0)
 
 # Utility functions
-def create_wallet():
-    """Create a new wallet for user"""
-    account = Account.create()
-    return {
-        "address": account.address,
-        "private_key": account.key.hex()  # Using key instead of privateKey
-    }
+def create_real_wallet():
+    """Create a real wallet on BNB Chain"""
+    try:
+        # Create new account
+        account = Account.create()
+        
+        return {
+            "address": account.address,
+            "private_key": account.privateKey.hex(),
+            "mnemonic": None  # For security, we'll store private key directly
+        }
+    except Exception as e:
+        print(f"Error creating wallet: {e}")
+        return None
 
-def get_account_from_mnemonic(mnemonic: str, index: int = 0):
-    """Get account from mnemonic"""
-    Account.enable_unaudited_hdwallet_features()
-    account = Account.from_mnemonic(mnemonic, account_path=f"m/44'/60'/0'/0/{index}")
-    return account
+def create_jwt_token(user_data: dict):
+    """Create JWT token for user authentication"""
+    payload = {
+        "user_id": user_data["id"],
+        "email": user_data["email"],
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+def verify_jwt_token(token: str):
+    """Verify JWT token"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current authenticated user"""
+    payload = verify_jwt_token(credentials.credentials)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    user = await db.users.find_one({"id": payload["user_id"]})
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return user
+
+def hash_password(password: str) -> str:
+    """Hash password using SHA256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+async def get_user_blockchain_assets(wallet_address: str):
+    """Get user's blockchain assets"""
+    try:
+        if not w3 or not w3.is_connected():
+            return {"bnb_balance": "0", "tokens": []}
+        
+        # Get BNB balance
+        balance_wei = w3.eth.get_balance(wallet_address)
+        bnb_balance = w3.from_wei(balance_wei, 'ether')
+        
+        # For MVP, we'll simulate token balances
+        # In production, you'd query actual token contracts
+        tokens = []
+        
+        # Get user's event participations to show token balances
+        user_purchases = []
+        async for purchase in db.purchases.find({"user_wallet": wallet_address}):
+            user_purchases.append(purchase)
+        
+        # Aggregate token balances
+        token_balances = {}
+        for purchase in user_purchases:
+            token_addr = purchase.get("token_address")
+            if token_addr not in token_balances:
+                token_balances[token_addr] = {
+                    "address": token_addr,
+                    "balance": 0,
+                    "name": purchase.get("token_name", "Unknown"),
+                    "event_name": purchase.get("event_name", "Unknown Event")
+                }
+            token_balances[token_addr]["balance"] += purchase.get("amount", 0)
+        
+        tokens = list(token_balances.values())
+        
+        return {
+            "bnb_balance": str(bnb_balance),
+            "tokens": tokens
+        }
+    except Exception as e:
+        print(f"Error getting blockchain assets: {e}")
+        return {"bnb_balance": "0", "tokens": []}
 
 # API Routes
 @app.get("/")
@@ -196,73 +221,173 @@ async def health_check():
             "web3_provider": WEB3_PROVIDER_URL
         }
 
-@app.post("/api/users/register")
+@app.post("/api/auth/register")
 async def register_user(user: UserRegister):
-    """Register a new user and create wallet"""
+    """Register a new user with real blockchain wallet"""
     try:
-        # Create wallet for user
-        wallet = create_wallet()
+        # Check if user already exists
+        existing_user = await db.users.find_one({"email": user.email})
+        if existing_user:
+            raise HTTPException(status_code=400, detail="User already exists with this email")
+        
+        # Create real wallet on BNB Chain
+        wallet = create_real_wallet()
+        if not wallet:
+            raise HTTPException(status_code=500, detail="Failed to create blockchain wallet")
+        
+        # Hash password
+        hashed_password = hash_password(user.password)
         
         user_data = {
             "id": str(uuid.uuid4()),
             "name": user.name,
             "email": user.email,
+            "password": hashed_password,
             "phone": user.phone,
             "wallet_address": wallet["address"],
-            "wallet_private_key": wallet["private_key"],  # In production, encrypt this!
+            "wallet_private_key": wallet["private_key"],  # Encrypted in production
             "created_at": datetime.datetime.utcnow(),
-            "balance_bnb": "0",
-            "tokens": []
+            "is_active": True,
+            "events_created": [],
+            "profile_settings": {
+                "show_wallet_info": True,
+                "notifications_enabled": True
+            }
         }
         
         # Save to database
         await db.users.insert_one(user_data)
         
+        # Create JWT token
+        token = create_jwt_token(user_data)
+        
         return {
-            "id": user_data["id"],
-            "name": user_data["name"],
-            "wallet_address": user_data["wallet_address"],
-            "message": "User registered successfully"
+            "user": {
+                "id": user_data["id"],
+                "name": user_data["name"],
+                "email": user_data["email"],
+                "wallet_address": user_data["wallet_address"]
+            },
+            "token": token,
+            "message": "User registered successfully with blockchain wallet"
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to register user: {str(e)}")
-
-@app.get("/api/users/{user_id}")
-async def get_user(user_id: str):
-    """Get user details"""
-    try:
-        user = await db.users.find_one({"id": user_id})
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Remove sensitive data
-        user.pop("wallet_private_key", None)
-        user.pop("_id", None)
-        
-        return user
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to register user: {str(e)}")
 
-@app.post("/api/organizers/events")
-async def create_event(event: EventCreate):
-    """Create a new event (for MVP, simplified without full blockchain integration)"""
+@app.post("/api/auth/login")
+async def login_user(credentials: UserLogin):
+    """Login user"""
     try:
-        # For MVP, store event in database with placeholder contract address
+        # Find user
+        user = await db.users.find_one({"email": credentials.email})
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Verify password
+        hashed_password = hash_password(credentials.password)
+        if user["password"] != hashed_password:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+        # Create JWT token
+        token = create_jwt_token(user)
+        
+        return {
+            "user": {
+                "id": user["id"],
+                "name": user["name"],
+                "email": user["email"],
+                "wallet_address": user["wallet_address"]
+            },
+            "token": token,
+            "message": "Login successful"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+@app.get("/api/profile")
+async def get_user_profile(current_user: dict = Depends(get_current_user)):
+    """Get user profile with blockchain assets"""
+    try:
+        # Get blockchain assets
+        assets = await get_user_blockchain_assets(current_user["wallet_address"])
+        
+        # Get user's events
+        user_events = []
+        async for event in db.events.find({"organizer_id": current_user["id"]}):
+            event.pop("_id", None)
+            user_events.append(event)
+        
+        # Get transaction history
+        transactions = []
+        async for tx in db.purchases.find({"user_id": current_user["id"]}).sort("timestamp", -1).limit(10):
+            tx.pop("_id", None)
+            tx["type"] = "purchase"
+            transactions.append(tx)
+        
+        async for tx in db.transfers.find({"from_user_id": current_user["id"]}).sort("timestamp", -1).limit(10):
+            tx.pop("_id", None)
+            tx["type"] = "transfer"
+            transactions.append(tx)
+        
+        # Sort transactions by timestamp
+        transactions.sort(key=lambda x: x.get("timestamp", datetime.datetime.min), reverse=True)
+        
+        profile = {
+            "user": {
+                "id": current_user["id"],
+                "name": current_user["name"],
+                "email": current_user["email"],
+                "phone": current_user.get("phone"),
+                "created_at": current_user["created_at"],
+                "wallet_address": current_user["wallet_address"]
+            },
+            "wallet": {
+                "address": current_user["wallet_address"],
+                "private_key": current_user["wallet_private_key"],  # Will be hidden in frontend
+                "assets": assets
+            },
+            "events": user_events,
+            "recent_transactions": transactions[:10],
+            "settings": current_user.get("profile_settings", {})
+        }
+        
+        return profile
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}")
+
+@app.post("/api/events")
+async def create_event(event: EventCreate, current_user: dict = Depends(get_current_user)):
+    """Create a new event (only for authenticated users)"""
+    try:
         event_data = {
             "id": str(uuid.uuid4()),
             "name": event.name,
             "date": event.date,
             "description": event.description,
-            "organizer_id": "default_organizer",  # For MVP
-            "contract_address": f"0x{'0' * 40}",  # Placeholder
+            "location": event.location,
+            "organizer_id": current_user["id"],
+            "organizer_name": current_user["name"],
+            "organizer_email": current_user["email"],
+            "contract_address": f"0x{'0' * 40}",  # Placeholder for MVP
             "tokens": [],
+            "cashiers": [],  # For offline sales
             "created_at": datetime.datetime.utcnow(),
-            "is_active": True
+            "is_active": True,
+            "sales_mode": "both",  # online, offline, or both
+            "total_revenue": 0
         }
         
         await db.events.insert_one(event_data)
+        
+        # Update user's events list
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$push": {"events_created": event_data["id"]}}
+        )
         
         event_data.pop("_id", None)
         return {
@@ -272,14 +397,57 @@ async def create_event(event: EventCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create event: {str(e)}")
 
-@app.post("/api/events/{event_id}/tokens")
-async def create_token(event_id: str, token: TokenCreate):
-    """Create a token for an event"""
+@app.get("/api/events")
+async def get_events(current_user: dict = Depends(get_current_user)):
+    """Get events created by current user"""
     try:
-        # Find event
-        event = await db.events.find_one({"id": event_id})
+        events = []
+        async for event in db.events.find({"organizer_id": current_user["id"]}):
+            event.pop("_id", None)
+            events.append(event)
+        
+        return {"events": events}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get events: {str(e)}")
+
+@app.get("/api/events/public")
+async def get_public_events():
+    """Get all public events for participants"""
+    try:
+        events = []
+        async for event in db.events.find({"is_active": True}):
+            event.pop("_id", None)
+            # Remove sensitive organizer data
+            event.pop("organizer_email", None)
+            events.append(event)
+        
+        return {"events": events}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get public events: {str(e)}")
+
+@app.get("/api/events/{event_id}")
+async def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
+    """Get event details (only if user owns the event)"""
+    try:
+        event = await db.events.find_one({"id": event_id, "organizer_id": current_user["id"]})
         if not event:
-            raise HTTPException(status_code=404, detail="Event not found")
+            raise HTTPException(status_code=404, detail="Event not found or access denied")
+        
+        event.pop("_id", None)
+        return event
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get event: {str(e)}")
+
+@app.post("/api/events/{event_id}/tokens")
+async def create_token(event_id: str, token: TokenCreate, current_user: dict = Depends(get_current_user)):
+    """Create a token for an event (only event owner)"""
+    try:
+        # Find event and verify ownership
+        event = await db.events.find_one({"id": event_id, "organizer_id": current_user["id"]})
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found or access denied")
         
         # Create token data
         token_data = {
@@ -288,8 +456,10 @@ async def create_token(event_id: str, token: TokenCreate):
             "price_cents": token.price_cents,
             "initial_supply": token.initial_supply,
             "total_sold": 0,
-            "contract_address": f"0x{'1' * 40}",  # Placeholder for MVP
-            "created_at": datetime.datetime.utcnow()
+            "sale_mode": token.sale_mode,
+            "contract_address": f"0x{uuid.uuid4().hex[:40]}",  # Mock address for MVP
+            "created_at": datetime.datetime.utcnow(),
+            "is_active": True
         }
         
         # Update event with new token
@@ -307,95 +477,134 @@ async def create_token(event_id: str, token: TokenCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create token: {str(e)}")
 
-@app.get("/api/events")
-async def get_events():
-    """Get all events"""
+@app.post("/api/events/{event_id}/cashiers")
+async def add_cashier(event_id: str, cashier_data: dict, current_user: dict = Depends(get_current_user)):
+    """Add cashier for offline sales"""
     try:
-        events = []
-        async for event in db.events.find():
-            event.pop("_id", None)
-            events.append(event)
-        
-        return {"events": events}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get events: {str(e)}")
-
-@app.get("/api/events/{event_id}")
-async def get_event(event_id: str):
-    """Get event details"""
-    try:
-        event = await db.events.find_one({"id": event_id})
+        # Verify event ownership
+        event = await db.events.find_one({"id": event_id, "organizer_id": current_user["id"]})
         if not event:
-            raise HTTPException(status_code=404, detail="Event not found")
+            raise HTTPException(status_code=404, detail="Event not found or access denied")
         
-        event.pop("_id", None)
-        return event
+        cashier = {
+            "id": str(uuid.uuid4()),
+            "name": cashier_data.get("name"),
+            "email": cashier_data.get("email", ""),
+            "station": cashier_data.get("station", "Caixa Principal"),
+            "created_at": datetime.datetime.utcnow(),
+            "is_active": True
+        }
+        
+        await db.events.update_one(
+            {"id": event_id},
+            {"$push": {"cashiers": cashier}}
+        )
+        
+        return {"cashier": cashier, "message": "Cashier added successfully"}
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get event: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to add cashier: {str(e)}")
 
-@app.post("/api/users/{user_id}/purchase")
-async def purchase_tokens(user_id: str, purchase: TokenPurchase):
-    """Purchase tokens for an event (simplified for MVP)"""
+@app.post("/api/purchase/online")
+async def purchase_tokens_online(purchase: TokenPurchaseOnline, current_user: dict = Depends(get_current_user)):
+    """Purchase tokens online with cryptocurrency"""
     try:
-        # Find user
-        user = await db.users.find_one({"id": user_id})
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # For MVP, simulate token purchase
+        # For MVP, simulate online crypto purchase
         purchase_data = {
             "id": str(uuid.uuid4()),
-            "user_id": user_id,
+            "user_id": current_user["id"],
+            "user_wallet": current_user["wallet_address"],
             "token_address": purchase.token_address,
             "amount": purchase.amount,
+            "payment_method": purchase.payment_method,
+            "payment_type": "online",
             "timestamp": datetime.datetime.utcnow(),
             "status": "completed",
-            "tx_hash": f"0x{'mock' * 16}"  # Mock transaction hash
+            "tx_hash": f"0x{'online' * 12}{uuid.uuid4().hex[:12]}"  # Mock transaction hash
         }
         
         # Save purchase record
         await db.purchases.insert_one(purchase_data)
         
-        # Update user tokens
-        await db.users.update_one(
-            {"id": user_id},
-            {"$push": {"tokens": {
-                "address": purchase.token_address,
-                "balance": purchase.amount
-            }}}
-        )
-        
         purchase_data.pop("_id", None)
         return {
             "purchase": purchase_data,
-            "message": "Tokens purchased successfully"
+            "message": "Tokens purchased successfully with cryptocurrency"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to purchase tokens: {str(e)}")
+
+@app.post("/api/transfer/offline")
+async def transfer_tokens_offline(transfer: TokenTransferOffline, current_user: dict = Depends(get_current_user)):
+    """Transfer tokens offline (cashier sends to user)"""
+    try:
+        # Find target user
+        target_user = await db.users.find_one({"email": transfer.user_email})
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Verify cashier authorization (simplified for MVP)
+        # In production, verify that current_user is authorized cashier for this event
+        
+        transfer_data = {
+            "id": str(uuid.uuid4()),
+            "from_cashier_id": current_user["id"],
+            "from_cashier_name": current_user["name"],
+            "to_user_id": target_user["id"],
+            "to_user_email": target_user["email"],
+            "to_wallet": target_user["wallet_address"],
+            "token_address": transfer.token_address,
+            "amount": transfer.amount,
+            "transfer_type": "offline",
+            "cashier_station": transfer.cashier_id,
+            "timestamp": datetime.datetime.utcnow(),
+            "status": "completed",
+            "tx_hash": f"0x{'offline' * 12}{uuid.uuid4().hex[:12]}"  # Mock transaction hash
+        }
+        
+        # Save transfer record
+        await db.offline_transfers.insert_one(transfer_data)
+        
+        # Also save as purchase for user
+        purchase_data = {
+            "id": str(uuid.uuid4()),
+            "user_id": target_user["id"],
+            "user_wallet": target_user["wallet_address"],
+            "token_address": transfer.token_address,
+            "amount": transfer.amount,
+            "payment_method": "offline",
+            "payment_type": "offline",
+            "timestamp": datetime.datetime.utcnow(),
+            "status": "completed",
+            "tx_hash": transfer_data["tx_hash"]
+        }
+        await db.purchases.insert_one(purchase_data)
+        
+        transfer_data.pop("_id", None)
+        return {
+            "transfer": transfer_data,
+            "message": "Tokens sent to user wallet successfully"
         }
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to purchase tokens: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to transfer tokens: {str(e)}")
 
-@app.post("/api/users/{user_id}/transfer")
-async def transfer_tokens(user_id: str, transfer: TokenTransfer):
-    """Transfer tokens to vendor (payment)"""
+@app.post("/api/transfer")
+async def transfer_tokens(transfer: TokenTransfer, current_user: dict = Depends(get_current_user)):
+    """Transfer tokens to another address (payment)"""
     try:
-        # Find user
-        user = await db.users.find_one({"id": user_id})
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # For MVP, simulate token transfer
         transfer_data = {
             "id": str(uuid.uuid4()),
-            "from_user_id": user_id,
+            "from_user_id": current_user["id"],
+            "from_wallet": current_user["wallet_address"],
             "to_address": transfer.to_address,
             "token_address": transfer.token_address,
             "amount": transfer.amount,
             "timestamp": datetime.datetime.utcnow(),
             "status": "completed",
-            "tx_hash": f"0x{'transfer' * 12}"  # Mock transaction hash
+            "tx_hash": f"0x{'transfer' * 10}{uuid.uuid4().hex[:14]}"  # Mock transaction hash
         }
         
         # Save transfer record
@@ -406,25 +615,23 @@ async def transfer_tokens(user_id: str, transfer: TokenTransfer):
             "transfer": transfer_data,
             "message": "Tokens transferred successfully"
         }
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to transfer tokens: {str(e)}")
 
-@app.get("/api/users/{user_id}/transactions")
-async def get_user_transactions(user_id: str):
+@app.get("/api/transactions")
+async def get_user_transactions(current_user: dict = Depends(get_current_user)):
     """Get user transaction history"""
     try:
         # Get purchases
         purchases = []
-        async for purchase in db.purchases.find({"user_id": user_id}):
+        async for purchase in db.purchases.find({"user_id": current_user["id"]}).sort("timestamp", -1):
             purchase.pop("_id", None)
             purchase["type"] = "purchase"
             purchases.append(purchase)
         
         # Get transfers
         transfers = []
-        async for transfer in db.transfers.find({"from_user_id": user_id}):
+        async for transfer in db.transfers.find({"from_user_id": current_user["id"]}).sort("timestamp", -1):
             transfer.pop("_id", None)
             transfer["type"] = "transfer"
             transfers.append(transfer)
