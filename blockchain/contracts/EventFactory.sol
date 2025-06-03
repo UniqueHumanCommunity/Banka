@@ -25,6 +25,8 @@ contract EventFactory is Ownable {
         uint256 eventDate
     );
     
+    constructor() Ownable(msg.sender) {}
+    
     // Create a new event contract
     function createEvent(
         string memory _eventName,
