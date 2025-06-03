@@ -31,7 +31,108 @@ function App() {
   useEffect(() => {
     fetchEvents();
     checkAPIHealth();
+    checkWalletConnection();
   }, []);
+
+  // Check if wallet is already connected
+  const checkWalletConnection = async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          setWalletConnected(true);
+          setWalletAddress(accounts[0]);
+          await checkNetwork();
+        }
+      } catch (error) {
+        console.error('Error checking wallet connection:', error);
+      }
+    }
+  };
+
+  // Check if we're on the correct network
+  const checkNetwork = async () => {
+    try {
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (chainId === BNB_TESTNET_CONFIG.chainId) {
+        setNetworkAdded(true);
+      }
+    } catch (error) {
+      console.error('Error checking network:', error);
+    }
+  };
+
+  // Connect to MetaMask
+  const connectWallet = async () => {
+    if (typeof window.ethereum === 'undefined') {
+      alert('MetaMask não está instalado! Por favor, instale o MetaMask para continuar.');
+      window.open('https://metamask.io/download.html', '_blank');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts',
+      });
+      
+      if (accounts.length > 0) {
+        setWalletConnected(true);
+        setWalletAddress(accounts[0]);
+        await addBNBTestnetNetwork();
+      }
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      alert('Erro ao conectar carteira. Verifique o MetaMask e tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add BNB Chain Testnet to MetaMask
+  const addBNBTestnetNetwork = async () => {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [BNB_TESTNET_CONFIG],
+      });
+      setNetworkAdded(true);
+      alert('✅ Rede BNB Chain Testnet adicionada com sucesso!');
+    } catch (error) {
+      console.error('Error adding network:', error);
+      if (error.code === 4902) {
+        alert('❌ Erro ao adicionar rede. Tente novamente.');
+      } else if (error.code === -32002) {
+        alert('⏳ Solicitação pendente no MetaMask. Verifique o MetaMask.');
+      } else {
+        alert('❌ Erro ao adicionar rede BNB Chain Testnet.');
+      }
+    }
+  };
+
+  // Switch to BNB Chain Testnet
+  const switchToBNBTestnet = async () => {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: BNB_TESTNET_CONFIG.chainId }],
+      });
+      setNetworkAdded(true);
+    } catch (error) {
+      console.error('Error switching network:', error);
+      if (error.code === 4902) {
+        // Network not added yet, add it
+        await addBNBTestnetNetwork();
+      }
+    }
+  };
+
+  // Get testnet BNB from faucet
+  const openFaucet = () => {
+    window.open('https://testnet.binance.org/faucet-smart', '_blank');
+  };
 
   const checkAPIHealth = async () => {
     try {
