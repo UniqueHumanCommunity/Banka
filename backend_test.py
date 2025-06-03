@@ -274,15 +274,16 @@ class BanKaAPITester:
 
     def test_get_transactions(self):
         """Test getting user transaction history"""
-        if not self.user_id:
-            print("❌ No user ID available for testing")
+        if not self.token:
+            print("❌ No auth token available for testing")
             return False
         
         success, response = self.run_test(
-            "Get Transactions",
+            "Get User Transactions",
             "GET",
-            f"api/users/{self.user_id}/transactions",
-            200
+            "api/transactions",
+            200,
+            auth=True
         )
         if success and "transactions" in response:
             print(f"Found {len(response['transactions'])} transactions")
