@@ -72,22 +72,31 @@ class BanKaAPITester:
         return success
 
     def test_register_user(self):
-        """Test user registration"""
-        user_email = f"test_user_{uuid.uuid4()}@example.com"
+        """Test user registration with blockchain wallet creation"""
+        self.user_email = f"test_user_{uuid.uuid4()}@example.com"
+        self.user_password = "TestPassword123"
+        
         success, response = self.run_test(
-            "Register User",
+            "Register User with Blockchain Wallet",
             "POST",
-            "api/users/register",
+            "api/auth/register",
             200,
             data={
                 "name": "Test User",
-                "email": user_email,
+                "email": self.user_email,
+                "password": self.user_password,
                 "phone": "1234567890"
             }
         )
-        if success and "id" in response:
-            self.user_id = response["id"]
+        
+        if success and "user" in response and "id" in response["user"]:
+            self.user_id = response["user"]["id"]
+            self.wallet_address = response["user"]["wallet_address"]
+            self.token = response["token"]
             print(f"Created user with ID: {self.user_id}")
+            print(f"Wallet address: {self.wallet_address}")
+            print(f"JWT Token: {self.token}")
+        
         return success
 
     def test_get_user(self):
