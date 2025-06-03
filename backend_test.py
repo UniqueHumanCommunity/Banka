@@ -186,19 +186,18 @@ class BanKaAPITester:
             print(f"Found {len(response['events'])} events")
         return success
 
-    def test_get_event(self):
-        """Test getting event details"""
-        if not self.event_id:
-            print("❌ No event ID available for testing")
-            return False
-        
+    def test_get_public_events(self):
+        """Test getting public events marketplace"""
         success, response = self.run_test(
-            "Get Event",
+            "Get Public Events Marketplace",
             "GET",
-            f"api/events/{self.event_id}",
+            "api/events/public",
             200
         )
-        print(f"Event Details: {json.dumps(response, indent=2)}")
+        
+        if success and "events" in response:
+            print(f"Found {len(response['events'])} public events")
+        
         return success
 
     def test_create_token(self):
