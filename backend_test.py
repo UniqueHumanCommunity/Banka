@@ -99,19 +99,49 @@ class BanKaAPITester:
         
         return success
 
-    def test_get_user(self):
-        """Test getting user details"""
-        if not self.user_id:
-            print("❌ No user ID available for testing")
+    def test_login(self):
+        """Test user login"""
+        if not self.user_email or not self.user_password:
+            print("❌ No user credentials available for testing")
             return False
         
         success, response = self.run_test(
-            "Get User",
-            "GET",
-            f"api/users/{self.user_id}",
-            200
+            "Login User",
+            "POST",
+            "api/auth/login",
+            200,
+            data={
+                "email": self.user_email,
+                "password": self.user_password
+            }
         )
-        print(f"User Details: {json.dumps(response, indent=2)}")
+        
+        if success and "token" in response:
+            self.token = response["token"]
+            print(f"Login successful, received token: {self.token}")
+        
+        return success
+
+    def test_get_profile(self):
+        """Test getting user profile with blockchain wallet details"""
+        if not self.token:
+            print("❌ No auth token available for testing")
+            return False
+        
+        success, response = self.run_test(
+            "Get User Profile with Blockchain Wallet",
+            "GET",
+            "api/profile",
+            200,
+            auth=True
+        )
+        
+        if success:
+            print(f"User Profile: {json.dumps(response, indent=2)}")
+            if "wallet" in response and "private_key" in response["wallet"]:
+                self.wallet_private_key = response["wallet"]["private_key"]
+                print(f"Retrieved wallet private key: {self.wallet_private_key[:10]}...")
+        
         return success
 
     def test_create_event(self):
