@@ -249,25 +249,24 @@ class BanKaAPITester:
             print(f"Purchase Response: {json.dumps(response, indent=2)}")
         return success
 
-    def test_transfer_tokens(self):
-        """Test transferring tokens (payment)"""
-        if not self.user_id or not self.token_address:
-            print("❌ No user ID or token address available for testing")
+    def test_transfer_tokens_offline(self):
+        """Test transferring tokens offline (cashier to user)"""
+        if not self.token or not self.token_address or not self.user_email:
+            print("❌ No auth token, token address, or user email available for testing")
             return False
         
-        # Using a mock vendor address
-        vendor_address = "0x1234567890123456789012345678901234567890"
-        
         success, response = self.run_test(
-            "Transfer Tokens",
+            "Transfer Tokens Offline (Cashier)",
             "POST",
-            f"api/users/{self.user_id}/transfer",
+            "api/transfer/offline",
             200,
             data={
-                "to_address": vendor_address,
+                "user_email": self.user_email,
                 "token_address": self.token_address,
-                "amount": 2
-            }
+                "amount": 10,
+                "cashier_id": "main-cashier"
+            },
+            auth=True
         )
         if success:
             print(f"Transfer Response: {json.dumps(response, indent=2)}")
