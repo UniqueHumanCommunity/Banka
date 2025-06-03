@@ -146,17 +146,23 @@ class BanKaAPITester:
 
     def test_create_event(self):
         """Test creating an event"""
+        if not self.token:
+            print("❌ No auth token available for testing")
+            return False
+        
         event_name = f"Test Event {uuid.uuid4()}"
         success, response = self.run_test(
             "Create Event",
             "POST",
-            "api/organizers/events",
+            "api/events",
             200,
             data={
                 "name": event_name,
                 "date": datetime.now().isoformat(),
-                "description": "This is a test event"
-            }
+                "description": "This is a test event",
+                "location": "Test Location"
+            },
+            auth=True
         )
         if success and "event" in response and "id" in response["event"]:
             self.event_id = response["event"]["id"]
