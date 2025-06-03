@@ -70,7 +70,7 @@ class TokenCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
     price_cents: int = Field(..., gt=0)
     initial_supply: int = Field(..., gt=0)
-    sale_mode: str = Field(..., regex="^(online|offline|both)$")  # online, offline, or both
+    sale_mode: str = Field(..., pattern="^(online|offline|both)$")  # online, offline, or both
 
 class TokenPurchaseOnline(BaseModel):
     token_address: str
