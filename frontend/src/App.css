@@ -167,3 +167,86 @@
 .vendor-qr {
   @apply text-center p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300;
 }
+
+/* Blockchain connection animations */
+.pulse-green {
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* MetaMask button styles */
+.metamask-btn {
+  background: linear-gradient(135deg, #f6851b 0%, #e2761b 100%);
+  box-shadow: 0 4px 15px rgba(246, 133, 27, 0.4);
+}
+
+.metamask-btn:hover {
+  box-shadow: 0 6px 20px rgba(246, 133, 27, 0.6);
+  transform: translateY(-2px);
+}
+
+/* Network status indicators */
+.network-status {
+  position: relative;
+  overflow: hidden;
+}
+
+.network-status::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Wallet connection flow */
+.setup-step {
+  transition: all 0.3s ease;
+}
+
+.setup-step.completed {
+  border-color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+}
+
+/* Blockchain info section */
+.blockchain-info {
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Success message animation */
+.success-message {
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
