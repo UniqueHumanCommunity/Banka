@@ -10,7 +10,12 @@ class BanKaAPITester:
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
+        self.token = None
         self.user_id = None
+        self.user_email = None
+        self.user_password = None
+        self.wallet_address = None
+        self.wallet_private_key = None
         self.event_id = None
         self.token_id = None
         self.token_address = None
