@@ -280,6 +280,43 @@ function App() {
   const HomePage = () => (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900">
       <div className="container mx-auto px-4 py-16">
+        {/* Wallet Connection Section */}
+        <div className="absolute top-4 right-4">
+          {!walletConnected ? (
+            <button
+              onClick={connectWallet}
+              disabled={loading}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 rounded-lg shadow-lg transition-all duration-200 hover:scale-105 disabled:opacity-50"
+            >
+              {loading ? '🔄 Conectando...' : '🦊 Conectar MetaMask'}
+            </button>
+          ) : (
+            <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 text-white">
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                <span className="text-sm">Carteira Conectada</span>
+              </div>
+              <div className="text-xs opacity-80">
+                {walletAddress?.substr(0, 6)}...{walletAddress?.substr(-4)}
+              </div>
+              {!networkAdded && (
+                <button
+                  onClick={switchToBNBTestnet}
+                  className="mt-2 text-xs bg-orange-500 hover:bg-orange-600 px-3 py-1 rounded text-white"
+                >
+                  Trocar para BNB Testnet
+                </button>
+              )}
+              {networkAdded && (
+                <div className="flex items-center space-x-1 mt-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                  <span className="text-xs">BNB Testnet</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-white mb-6">
             Ban<span className="text-yellow-400">Ka</span>
@@ -287,10 +324,80 @@ function App() {
           <p className="text-2xl text-blue-200 mb-8">
             O caixa do seu evento na era digital
           </p>
-          <p className="text-lg text-blue-300 max-w-2xl mx-auto">
+          <p className="text-lg text-blue-300 max-w-2xl mx-auto mb-8">
             Revolucione a experiência de pagamento em eventos com tokens digitais seguros na blockchain.
             Sem filas, sem dinheiro físico, apenas tecnologia.
           </p>
+
+          {/* Blockchain Setup Instructions */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 max-w-4xl mx-auto mb-8">
+            <h3 className="text-xl font-bold text-white mb-4">🔗 Setup Blockchain</h3>
+            <div className="grid md:grid-cols-3 gap-4 text-left">
+              <div className="bg-white/5 rounded-lg p-4">
+                <div className="text-3xl mb-2">🦊</div>
+                <h4 className="font-bold text-white mb-2">1. MetaMask</h4>
+                <p className="text-blue-200 text-sm mb-3">
+                  Instale a extensão MetaMask e conecte sua carteira
+                </p>
+                {!walletConnected ? (
+                  <button
+                    onClick={connectWallet}
+                    disabled={loading}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+                  >
+                    {loading ? 'Conectando...' : 'Conectar'}
+                  </button>
+                ) : (
+                  <div className="text-green-400 text-sm">✅ Conectado</div>
+                )}
+              </div>
+
+              <div className="bg-white/5 rounded-lg p-4">
+                <div className="text-3xl mb-2">⚙️</div>
+                <h4 className="font-bold text-white mb-2">2. Rede Testnet</h4>
+                <p className="text-blue-200 text-sm mb-3">
+                  Configure a BNB Chain Testnet automaticamente
+                </p>
+                {!networkAdded ? (
+                  <button
+                    onClick={addBNBTestnetNetwork}
+                    disabled={!walletConnected}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+                  >
+                    Adicionar Rede
+                  </button>
+                ) : (
+                  <div className="text-green-400 text-sm">✅ Configurado</div>
+                )}
+              </div>
+
+              <div className="bg-white/5 rounded-lg p-4">
+                <div className="text-3xl mb-2">💰</div>
+                <h4 className="font-bold text-white mb-2">3. tBNB Grátis</h4>
+                <p className="text-blue-200 text-sm mb-3">
+                  Obtenha BNB de teste gratuito para transações
+                </p>
+                <button
+                  onClick={openFaucet}
+                  disabled={!networkAdded}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+                >
+                  Obter tBNB
+                </button>
+              </div>
+            </div>
+            
+            {walletConnected && networkAdded && (
+              <div className="mt-4 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-green-300 font-medium">
+                    ✅ Pronto para usar BanKa na blockchain!
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -333,6 +440,19 @@ function App() {
               <div className="text-4xl mb-4">📱</div>
               <h4 className="text-xl font-bold text-white mb-2">Simples</h4>
               <p className="text-blue-300">Interface intuitiva para todos</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Blockchain Info Footer */}
+        <div className="mt-16 text-center">
+          <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 max-w-2xl mx-auto">
+            <h4 className="text-lg font-bold text-white mb-3">🔗 Informações da Blockchain</h4>
+            <div className="text-sm text-blue-200 space-y-1">
+              <p><strong>Rede:</strong> BNB Smart Chain Testnet</p>
+              <p><strong>Chain ID:</strong> 97</p>
+              <p><strong>Explorer:</strong> <a href="https://testnet.bscscan.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">testnet.bscscan.com</a></p>
+              <p><strong>Faucet:</strong> <a href="https://testnet.binance.org/faucet-smart" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">testnet.binance.org/faucet-smart</a></p>
             </div>
           </div>
         </div>
