@@ -352,8 +352,8 @@ def main():
         return 1
     
     # Token purchase and transfer
-    tester.test_purchase_tokens()
-    tester.test_transfer_tokens()
+    tester.test_purchase_tokens_online()
+    tester.test_transfer_tokens_offline()
     
     # Transaction history
     tester.test_get_transactions()
