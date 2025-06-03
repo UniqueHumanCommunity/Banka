@@ -344,7 +344,7 @@ def main():
         return 1
     
     tester.test_get_events()
-    tester.test_get_event()
+    tester.test_get_public_events()
     
     # Token creation
     if not tester.test_create_token():
