@@ -20,10 +20,13 @@ class BanKaAPITester:
         self.token_id = None
         self.token_address = None
 
-    def run_test(self, name, method, endpoint, expected_status, data=None):
+    def run_test(self, name, method, endpoint, expected_status, data=None, auth=False):
         """Run a single API test"""
         url = f"{self.base_url}/{endpoint}"
         headers = {'Content-Type': 'application/json'}
+        
+        if auth and self.token:
+            headers['Authorization'] = f'Bearer {self.token}'
         
         self.tests_run += 1
         print(f"\n🔍 Testing {name}...")
