@@ -1,4 +1,4 @@
-require("@nomicfoundation/hardhat-toolbox");
+require("@nomicfoundation/hardhat-ethers");
 
 const MNEMONIC = "flee cluster north scissors random attitude mutual strategy excuse debris consider uniform";
 const BNB_TESTNET_URL = "https://bsc-testnet.nodereal.io/v1/e9a36765eb8a40b9bd12e680a1fd2bc5";
