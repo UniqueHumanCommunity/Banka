@@ -166,22 +166,34 @@ async def health_check():
     """Health check endpoint"""
     try:
         # Check blockchain connection
-        latest_block = w3.eth.block_number
+        if w3 is not None and w3.is_connected():
+            latest_block = w3.eth.block_number
+            blockchain_connected = True
+            blockchain_error = None
+        else:
+            latest_block = None
+            blockchain_connected = False
+            blockchain_error = "Web3 provider not connected"
+        
         # Check database connection
         await db.list_collection_names()
+        database_connected = True
         
         return {
-            "status": "healthy",
-            "blockchain_connected": True,
+            "status": "healthy" if blockchain_connected and database_connected else "partial",
+            "blockchain_connected": blockchain_connected,
+            "blockchain_error": blockchain_error,
             "latest_block": latest_block,
-            "database_connected": True
+            "database_connected": database_connected,
+            "web3_provider": WEB3_PROVIDER_URL
         }
     except Exception as e:
         return {
             "status": "unhealthy",
             "error": str(e),
             "blockchain_connected": False,
-            "database_connected": False
+            "database_connected": False,
+            "web3_provider": WEB3_PROVIDER_URL
         }
 
 @app.post("/api/users/register")
