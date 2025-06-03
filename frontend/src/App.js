@@ -619,12 +619,22 @@ function App() {
         <div className="bg-white shadow-sm">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-800">Meu Perfil</h1>
-            <button
-              onClick={() => setCurrentView('home')}
-              className="px-4 py-2 text-blue-600 hover:text-blue-800"
-            >
-              ← Voltar
-            </button>
+            <div className="flex space-x-4">
+              {user && (
+                <button
+                  onClick={() => alert('🏪 Sistema de Caixa Offline:\n\nFuncionalidade implementada no backend!\n\nCaixas podem:\n✅ Receber pagamento em dinheiro/cartão\n✅ Enviar tokens diretamente para carteira do participante\n✅ Usar endpoint /api/transfer/offline\n\nVeja a API documentation para detalhes.')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  💰 Demo Caixa Offline
+                </button>
+              )}
+              <button
+                onClick={() => setCurrentView('home')}
+                className="px-4 py-2 text-blue-600 hover:text-blue-800"
+              >
+                ← Voltar
+              </button>
+            </div>
           </div>
         </div>
 
