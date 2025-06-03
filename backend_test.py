@@ -227,21 +227,23 @@ class BanKaAPITester:
             print(f"Token address: {self.token_address}")
         return success
 
-    def test_purchase_tokens(self):
-        """Test purchasing tokens"""
-        if not self.user_id or not self.token_address:
-            print("❌ No user ID or token address available for testing")
+    def test_purchase_tokens_online(self):
+        """Test purchasing tokens online with cryptocurrency"""
+        if not self.token or not self.token_address:
+            print("❌ No auth token or token address available for testing")
             return False
         
         success, response = self.run_test(
-            "Purchase Tokens",
+            "Purchase Tokens Online with Crypto",
             "POST",
-            f"api/users/{self.user_id}/purchase",
+            "api/purchase/online",
             200,
             data={
                 "token_address": self.token_address,
-                "amount": 5
-            }
+                "amount": 5,
+                "payment_method": "bnb"  # Test BNB payment
+            },
+            auth=True
         )
         if success:
             print(f"Purchase Response: {json.dumps(response, indent=2)}")
