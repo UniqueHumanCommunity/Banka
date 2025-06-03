@@ -170,12 +170,17 @@ class BanKaAPITester:
         return success
 
     def test_get_events(self):
-        """Test getting all events"""
+        """Test getting user's events"""
+        if not self.token:
+            print("❌ No auth token available for testing")
+            return False
+        
         success, response = self.run_test(
-            "Get Events",
+            "Get User Events",
             "GET",
             "api/events",
-            200
+            200,
+            auth=True
         )
         if success and "events" in response:
             print(f"Found {len(response['events'])} events")
