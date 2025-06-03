@@ -522,8 +522,10 @@ function App() {
               <label className="block text-sm font-medium mb-2">Nome Completo</label>
               <input
                 type="text"
+                name="name"
+                id="name"
                 required
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
               />
@@ -533,8 +535,10 @@ function App() {
               <label className="block text-sm font-medium mb-2">Email</label>
               <input
                 type="email"
+                name="email"
+                id="reg_email"
                 required
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
               />
@@ -544,9 +548,11 @@ function App() {
               <label className="block text-sm font-medium mb-2">Senha (mín. 6 caracteres)</label>
               <input
                 type="password"
+                name="password"
+                id="reg_password"
                 required
                 minLength="6"
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
               />
@@ -556,7 +562,9 @@ function App() {
               <label className="block text-sm font-medium mb-2">Telefone (opcional)</label>
               <input
                 type="tel"
-                className="w-full p-3 border rounded-lg"
+                name="phone"
+                id="phone"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
               />
