@@ -34,11 +34,10 @@ contract EventContract is ReentrancyGuard, Ownable {
         string memory _eventName,
         uint256 _eventDate,
         address _owner
-    ) {
+    ) Ownable(_owner) {
         eventName = _eventName;
         eventDate = _eventDate;
         isActive = true;
-        _transferOwnership(_owner);
     }
     
     // Create a new token type for this event
