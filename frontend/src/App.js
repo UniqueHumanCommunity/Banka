@@ -1102,57 +1102,300 @@ function App() {
     );
   };
 
-  // Marketplace Component (simplified)
-  const MarketplacePage = () => (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Marketplace de Tokens</h1>
-          <button
-            onClick={() => setCurrentView('home')}
-            className="px-4 py-2 text-blue-600 hover:text-blue-800"
-          >
-            ← Voltar
-          </button>
-        </div>
-      </div>
+  // Marketplace Component (enhanced with offline transfer)
+  const MarketplacePage = () => {
+    const [showOfflineTransfer, setShowOfflineTransfer] = useState(false);
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid gap-6">
-          {publicEvents.map((event) => (
-            <div key={event.id} className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="text-xl font-bold mb-2">{event.name}</h3>
-              <p className="text-gray-600 mb-4">
-                {new Date(event.date).toLocaleDateString('pt-BR')}
-                {event.location && ` • ${event.location}`}
-              </p>
+    const OfflineTransferForm = () => {
+      const [formData, setFormData] = useState({
+        user_email: '',
+        token_address: '',
+        amount: '',
+        cashier_id: 'main'
+      });
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!user) {
+          alert('Você precisa estar logado como caixa para realizar transferências offline');
+          return;
+        }
+
+        setLoading(true);
+        try {
+          const response = await fetch(`${API_BASE}/api/transfer/offline`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(formData),
+          });
+          
+          const data = await response.json();
+          if (response.ok) {
+            alert('✅ Tokens enviados para a carteira do usuário com sucesso!');
+            setShowOfflineTransfer(false);
+            setFormData({ user_email: '', token_address: '', amount: '', cashier_id: 'main' });
+          } else {
+            alert('❌ Erro: ' + data.detail);
+          }
+        } catch (error) {
+          alert('❌ Erro na transferência: ' + error.message);
+        }
+        setLoading(false);
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold mb-6">💰 Caixa Offline - Enviar Tokens</h3>
+            <p className="text-gray-600 mb-6 text-sm">
+              Envie tokens diretamente para a carteira de um participante após receber pagamento em dinheiro ou cartão.
+            </p>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">📧 Email do Participante</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="participante@email.com"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+                  value={formData.user_email}
+                  onChange={(e) => setFormData({...formData, user_email: e.target.value})}
+                />
+              </div>
               
-              {event.tokens && event.tokens.length > 0 && (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {event.tokens.map((token) => (
-                    <div key={token.id} className="bg-gray-50 rounded-lg p-4">
-                      <div className="font-medium">{token.name}</div>
-                      <div className="text-lg font-bold text-green-600">
-                        R$ {(token.price_cents / 100).toFixed(2)}
-                      </div>
-                      <div className="text-sm text-gray-600 mb-2">
-                        Disponível: {token.initial_supply - token.total_sold}
-                      </div>
-                      {user && (
-                        <button className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                          Comprar
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">🎫 Token</label>
+                <select
+                  required
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+                  value={formData.token_address}
+                  onChange={(e) => setFormData({...formData, token_address: e.target.value})}
+                >
+                  <option value="">Selecione um token</option>
+                  {publicEvents.map(event => 
+                    event.tokens?.map(token => (
+                      <option key={token.contract_address} value={token.contract_address}>
+                        {token.name} - {event.name} - R$ {(token.price_cents / 100).toFixed(2)}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">📊 Quantidade</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  placeholder="Ex: 2"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                />
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">🏪 Caixa/Estação</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Caixa Principal, Bar Norte"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
+                  value={formData.cashier_id}
+                  onChange={(e) => setFormData({...formData, cashier_id: e.target.value})}
+                />
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-yellow-800">
+                  <strong>⚠️ Importante:</strong> Certifique-se de que recebeu o pagamento antes de enviar os tokens. 
+                  Esta ação não pode ser desfeita.
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowOfflineTransfer(false)}
+                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  {loading ? 'Enviando...' : '🚀 Enviar Tokens'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
+      );
+    };
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white shadow-sm">
+          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-800">🛍️ Marketplace de Tokens</h1>
+            <div className="flex space-x-4">
+              {user && (
+                <button
+                  onClick={() => setShowOfflineTransfer(true)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  💰 Caixa Offline
+                </button>
+              )}
+              <button
+                onClick={() => setCurrentView('home')}
+                className="px-4 py-2 text-blue-600 hover:text-blue-800"
+              >
+                ← Voltar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-8">
+          {/* Info Cards for Different Purchase Methods */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-6">
+              <h3 className="text-xl font-bold mb-2">💳 Compra Online</h3>
+              <p className="text-blue-100 mb-4">
+                Participantes podem comprar tokens diretamente com criptomoedas (BNB, BUSD, USDT)
+              </p>
+              <div className="text-sm bg-white/20 rounded-lg p-3">
+                <p>✅ Pagamento instantâneo</p>
+                <p>✅ Tokens na carteira imediatamente</p>
+                <p>✅ Sem intermediários</p>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl p-6">
+              <h3 className="text-xl font-bold mb-2">🏪 Compra Offline</h3>
+              <p className="text-green-100 mb-4">
+                Caixas do evento podem receber dinheiro/cartão e enviar tokens diretamente
+              </p>
+              <div className="text-sm bg-white/20 rounded-lg p-3">
+                <p>✅ Aceita dinheiro físico</p>
+                <p>✅ Aceita cartão de crédito</p>
+                <p>✅ Tokens enviados na hora</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Events Grid */}
+          <div className="grid gap-6">
+            {publicEvents.map((event) => (
+              <div key={event.id} className="bg-white rounded-xl shadow-sm border p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">{event.name}</h3>
+                    <p className="text-gray-600 mb-2">
+                      📅 {new Date(event.date).toLocaleDateString('pt-BR')}
+                      {event.location && ` • 📍 ${event.location}`}
+                    </p>
+                    {event.description && (
+                      <p className="text-gray-600 mb-4">{event.description}</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                      🟢 Ativo
+                    </span>
+                  </div>
+                </div>
+                
+                {event.tokens && event.tokens.length > 0 ? (
+                  <div>
+                    <h4 className="font-medium mb-3">🎫 Tokens Disponíveis:</h4>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {event.tokens.map((token) => (
+                        <div key={token.id} className="bg-gray-50 rounded-lg p-4 border">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="font-medium text-lg">{token.name}</div>
+                            <div className="text-lg font-bold text-green-600">
+                              R$ {(token.price_cents / 100).toFixed(2)}
+                            </div>
+                          </div>
+                          
+                          <div className="text-sm text-gray-600 mb-3">
+                            📦 Disponível: {token.initial_supply - token.total_sold}
+                          </div>
+                          
+                          <div className="mb-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              token.sale_mode === 'online' ? 'bg-blue-100 text-blue-800' :
+                              token.sale_mode === 'offline' ? 'bg-green-100 text-green-800' :
+                              'bg-purple-100 text-purple-800'
+                            }`}>
+                              {token.sale_mode === 'online' ? '💳 Apenas Online' : 
+                               token.sale_mode === 'offline' ? '🏪 Apenas Offline' : 
+                               '💳🏪 Online + Offline'}
+                            </span>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            {(token.sale_mode === 'online' || token.sale_mode === 'both') && user && (
+                              <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                                💳 Comprar Online
+                              </button>
+                            )}
+                            {(token.sale_mode === 'offline' || token.sale_mode === 'both') && user && (
+                              <button 
+                                onClick={() => {
+                                  setFormData(prev => ({...prev, token_address: token.contract_address}));
+                                  setShowOfflineTransfer(true);
+                                }}
+                                className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                              >
+                                🏪 Caixa Offline
+                              </button>
+                            )}
+                            {!user && (
+                              <button 
+                                onClick={() => setCurrentView('login')}
+                                className="w-full px-3 py-2 bg-gray-400 text-white rounded text-sm"
+                              >
+                                Fazer Login
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">📭 Nenhum token disponível para este evento</p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {publicEvents.length === 0 && (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">🎪</div>
+              <h3 className="text-xl font-medium text-gray-600 mb-2">
+                Nenhum evento disponível
+              </h3>
+              <p className="text-gray-500">
+                Aguarde novos eventos serem criados
+              </p>
+            </div>
+          )}
+        </div>
+
+        {showOfflineTransfer && <OfflineTransferForm />}
       </div>
-    </div>
-  );
+    );
+  };
 
   // Main App Router
   const renderCurrentView = () => {
