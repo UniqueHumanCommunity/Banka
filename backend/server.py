@@ -140,7 +140,7 @@ def create_wallet():
     account = Account.create()
     return {
         "address": account.address,
-        "private_key": account.privateKey.hex()
+        "private_key": account.key.hex()  # Using key instead of privateKey
     }
 
 def get_account_from_mnemonic(mnemonic: str, index: int = 0):
