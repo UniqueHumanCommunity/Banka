@@ -13,12 +13,19 @@ from eth_account import Account
 import json
 
 # Web3 setup
-WEB3_PROVIDER_URL = os.environ.get('WEB3_PROVIDER_URL')
-WALLET_MNEMONIC = os.environ.get('WALLET_MNEMONIC')
-EVENT_FACTORY_ADDRESS = os.environ.get('EVENT_FACTORY_ADDRESS')
+WEB3_PROVIDER_URL = os.environ.get('WEB3_PROVIDER_URL', 'https://bsc-testnet.nodereal.io/v1/e9a36765eb8a40b9bd12e680a1fd2bc5')
+WALLET_MNEMONIC = os.environ.get('WALLET_MNEMONIC', 'flee cluster north scissors random attitude mutual strategy excuse debris consider uniform')
+EVENT_FACTORY_ADDRESS = os.environ.get('EVENT_FACTORY_ADDRESS', '0x0000000000000000000000000000000000000000')
 
 # Initialize Web3
-w3 = Web3(Web3.HTTPProvider(WEB3_PROVIDER_URL))
+try:
+    w3 = Web3(Web3.HTTPProvider(WEB3_PROVIDER_URL))
+    print(f"Connecting to Web3 provider: {WEB3_PROVIDER_URL}")
+    latest_block = w3.eth.block_number
+    print(f"Connected to blockchain! Latest block: {latest_block}")
+except Exception as e:
+    print(f"Failed to connect to blockchain: {e}")
+    w3 = None
 
 # Event Factory ABI (simplified for MVP)
 EVENT_FACTORY_ABI = [
