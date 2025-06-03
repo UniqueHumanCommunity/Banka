@@ -201,22 +201,24 @@ class BanKaAPITester:
         return success
 
     def test_create_token(self):
-        """Test creating a token for an event"""
-        if not self.event_id:
-            print("❌ No event ID available for testing")
+        """Test creating a token for an event with sale mode"""
+        if not self.token or not self.event_id:
+            print("❌ No auth token or event ID available for testing")
             return False
         
         token_name = f"TEST_TOKEN_{uuid.uuid4().hex[:8]}"
         success, response = self.run_test(
-            "Create Token",
+            "Create Token with Sale Mode",
             "POST",
             f"api/events/{self.event_id}/tokens",
             200,
             data={
                 "name": token_name,
                 "price_cents": 500,
-                "initial_supply": 1000
-            }
+                "initial_supply": 1000,
+                "sale_mode": "both"  # Test both online and offline modes
+            },
+            auth=True
         )
         if success and "token" in response and "id" in response["token"]:
             self.token_id = response["token"]["id"]
