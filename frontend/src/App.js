@@ -8,8 +8,24 @@ function App() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState(null);
+  const [networkAdded, setNetworkAdded] = useState(false);
 
   const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+
+  // BNB Chain Testnet configuration
+  const BNB_TESTNET_CONFIG = {
+    chainId: '0x61', // 97 in decimal
+    chainName: 'BNB Smart Chain Testnet',
+    nativeCurrency: {
+      name: 'BNB',
+      symbol: 'tBNB',
+      decimals: 18
+    },
+    rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+    blockExplorerUrls: ['https://testnet.bscscan.com/']
+  };
 
   // Fetch events on load
   useEffect(() => {
