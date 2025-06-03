@@ -92,16 +92,21 @@ class TokenTransfer(BaseModel):
 def create_real_wallet():
     """Create a real wallet on BNB Chain"""
     try:
+        # Enable unaudited HD wallet features for development
+        Account.enable_unaudited_hdwallet_features()
+        
         # Create new account
         account = Account.create()
         
         return {
             "address": account.address,
-            "private_key": account.privateKey.hex(),
+            "private_key": account.key.hex(),
             "mnemonic": None  # For security, we'll store private key directly
         }
     except Exception as e:
         print(f"Error creating wallet: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def create_jwt_token(user_data: dict):
