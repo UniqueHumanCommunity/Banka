@@ -75,7 +75,7 @@ class TokenCreate(BaseModel):
 class TokenPurchaseOnline(BaseModel):
     token_address: str
     amount: int = Field(..., gt=0)
-    payment_method: str = Field(..., regex="^(bnb|busd|usdt)$")
+    payment_method: str = Field(..., pattern="^(bnb|busd|usdt)$")
 
 class TokenTransferOffline(BaseModel):
     user_email: str
