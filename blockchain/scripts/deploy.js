@@ -7,33 +7,26 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
 
   console.log("Deploying contracts with the account:", deployer.address);
-  console.log("Account balance:", (await deployer.getBalance()).toString());
+  console.log("Account balance:", (await hre.ethers.provider.getBalance(deployer.address)).toString());
 
   // Deploy EventFactory
   const EventFactory = await hre.ethers.getContractFactory("EventFactory");
   const eventFactory = await EventFactory.deploy();
 
-  await eventFactory.deployed();
+  await eventFactory.waitForDeployment();
 
-  console.log("EventFactory deployed to:", eventFactory.address);
+  console.log("EventFactory deployed to:", await eventFactory.getAddress());
 
   // Verify the contract (optional, for testnet)
   if (hre.network.name !== "hardhat") {
     console.log("Waiting for block confirmations...");
-    await eventFactory.deployTransaction.wait(6);
-    
-    try {
-      await hre.run("verify:verify", {
-        address: eventFactory.address,
-        constructorArguments: [],
-      });
-    } catch (error) {
-      console.log("Verification failed:", error.message);
-    }
+    // Wait for a few blocks
+    const receipt = await eventFactory.deploymentTransaction().wait(3);
+    console.log("Contract deployed in block:", receipt.blockNumber);
   }
 
   return {
-    eventFactory: eventFactory.address
+    eventFactory: await eventFactory.getAddress()
   };
 }
 
