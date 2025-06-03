@@ -325,12 +325,18 @@ def main():
         print("❌ Health check failed, stopping tests")
         return 1
     
-    # User registration and retrieval
+    # User registration and authentication
     if not tester.test_register_user():
         print("❌ User registration failed, stopping tests")
         return 1
     
-    tester.test_get_user()
+    if not tester.test_login():
+        print("❌ User login failed, stopping tests")
+        return 1
+    
+    if not tester.test_get_profile():
+        print("❌ Profile retrieval failed, stopping tests")
+        return 1
     
     # Event creation and retrieval
     if not tester.test_create_event():
