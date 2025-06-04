@@ -1145,17 +1145,17 @@ function App() {
           </div>
 
           <div className="grid gap-6">
-            {events.map((event) => (
-              <div key={event.id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+            {Array.isArray(events) && events.length > 0 ? events.map((event) => (
+              <div key={event.id} className="bg-white rounded-xl shadow-sm border p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-white">{event.name}</h3>
-                    <p className="text-white/70">
-                      📅 {new Date(event.date).toLocaleDateString('pt-BR')} 
-                      {event.location && ` • 📍 ${event.location}`}
+                    <h3 className="text-xl font-bold text-gray-800">{event.name || 'Evento sem nome'}</h3>
+                    <p className="text-gray-600">
+                      {event.date ? new Date(event.date).toLocaleDateString('pt-BR') : 'Data não informada'}
+                      {event.location && ` • ${event.location}`}
                     </p>
                     {event.description && (
-                      <p className="text-white/60 mt-2">{event.description}</p>
+                      <p className="text-gray-600 mt-2">{event.description}</p>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -1166,68 +1166,54 @@ function App() {
                       }}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                     >
-                      🎫 Token
+                      + Token
                     </button>
                   </div>
                 </div>
 
-                <div className="border-t border-white/10 pt-4">
-                  <h4 className="font-medium text-white mb-3">Tokens do Evento:</h4>
-                  {event.tokens && event.tokens.length > 0 ? (
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-3">Tokens do Evento:</h4>
+                  {event.tokens && Array.isArray(event.tokens) && event.tokens.length > 0 ? (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {event.tokens.map((token) => (
-                        <div key={token.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="font-medium text-white">{token.name}</div>
-                            <a
-                              href={`https://testnet.bscscan.com/address/${token.contract_address}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300"
-                              title="Ver contrato no BSCScan"
-                            >
-                              ℹ️
-                            </a>
+                        <div key={token.id} className="bg-gray-50 rounded-lg p-4">
+                          <div className="font-medium">{token.name || 'Token'}</div>
+                          <div className="text-sm text-gray-600">
+                            R$ {((token.price_cents || 0) / 100).toFixed(2)}
                           </div>
-                          <div className="text-sm text-white/70">
-                            💰 R$ {(token.price_cents / 100).toFixed(2)}
+                          <div className="text-sm text-gray-600">
+                            Estoque: {(token.initial_supply || 0) - (token.total_sold || 0)}
                           </div>
-                          <div className="text-sm text-white/70">
-                            📦 Estoque: {token.initial_supply - token.total_sold}
-                          </div>
-                          <div className="text-xs mt-2">
+                          <div className="text-xs mt-1">
                             <span className={`px-2 py-1 rounded-full ${
-                              token.sale_mode === 'online' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                              token.sale_mode === 'offline' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                              'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                              token.sale_mode === 'online' ? 'bg-blue-100 text-blue-800' :
+                              token.sale_mode === 'offline' ? 'bg-green-100 text-green-800' :
+                              'bg-purple-100 text-purple-800'
                             }`}>
-                              {token.sale_mode === 'online' ? '💳 Online' : 
-                               token.sale_mode === 'offline' ? '🏪 Offline' : 
-                               '🔄 Híbrido'}
+                              {token.sale_mode === 'online' ? 'Online' : 
+                               token.sale_mode === 'offline' ? 'Offline' : 'Online + Offline'}
                             </span>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-white/50 italic">Nenhum token criado ainda</p>
+                    <p className="text-gray-500 italic">Nenhum token criado ainda</p>
                   )}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">🎪</div>
+                <h3 className="text-xl font-medium text-gray-600 mb-2">
+                  Nenhum evento criado ainda
+                </h3>
+                <p className="text-gray-500">
+                  Clique em "Criar Evento" para começar
+                </p>
+              </div>
+            )}
           </div>
-
-          {events.length === 0 && (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🎪</div>
-              <h3 className="text-xl font-medium text-white/70 mb-2">
-                Nenhum evento criado ainda
-              </h3>
-              <p className="text-white/50">
-                Clique em "Criar Evento" para começar
-              </p>
-            </div>
-          )}
         </div>
 
         {showCreateEvent && <CreateEventForm />}
