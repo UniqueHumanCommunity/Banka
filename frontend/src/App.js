@@ -1430,13 +1430,13 @@ function App() {
 
           {/* Events Grid */}
           <div className="grid gap-6">
-            {publicEvents.map((event) => (
+            {Array.isArray(publicEvents) && publicEvents.length > 0 ? publicEvents.map((event) => (
               <div key={event.id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-white mb-2">{event.name}</h3>
+                    <h3 className="text-xl font-bold text-white mb-2">{event.name || 'Evento sem nome'}</h3>
                     <p className="text-white/70 mb-2">
-                      📅 {new Date(event.date).toLocaleDateString('pt-BR')}
+                      📅 {event.date ? new Date(event.date).toLocaleDateString('pt-BR') : 'Data não informada'}
                       {event.location && ` • 📍 ${event.location}`}
                     </p>
                     {event.description && (
@@ -1450,20 +1450,20 @@ function App() {
                   </div>
                 </div>
                 
-                {event.tokens && event.tokens.length > 0 ? (
+                {event.tokens && Array.isArray(event.tokens) && event.tokens.length > 0 ? (
                   <div>
                     <h4 className="font-medium text-white mb-3">🎫 Tokens Disponíveis:</h4>
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {event.tokens.map((token) => (
                         <div key={token.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
                           <div className="flex justify-between items-start mb-2">
-                            <div className="font-medium text-lg text-white">{token.name}</div>
+                            <div className="font-medium text-lg text-white">{token.name || 'Token'}</div>
                             <div className="flex items-center space-x-2">
                               <div className="text-lg font-bold text-green-400">
-                                R$ {(token.price_cents / 100).toFixed(2)}
+                                R$ {((token.price_cents || 0) / 100).toFixed(2)}
                               </div>
                               <a
-                                href={`https://testnet.bscscan.com/address/${token.contract_address}`}
+                                href={`https://testnet.bscscan.com/address/${token.contract_address || ''}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-400 hover:text-blue-300 text-lg"
