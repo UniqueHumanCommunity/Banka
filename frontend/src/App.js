@@ -1170,8 +1170,8 @@ function App() {
                   required
                   placeholder="participante@email.com"
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
-                  value={formData.user_email}
-                  onChange={(e) => setFormData({...formData, user_email: e.target.value})}
+                  value={offlineFormData.user_email}
+                  onChange={(e) => setOfflineFormData({...offlineFormData, user_email: e.target.value})}
                 />
               </div>
               
