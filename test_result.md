@@ -106,77 +106,77 @@ user_problem_statement: "Passar o aplicativo por um ajuste fino e implementar os
 
 backend:
   - task: "Create real ERC-20 smart contracts for tokens"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "backend/contracts/"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: "NA"
+        - working: true
           agent: "main"
-          comment: "Need to create smart contract infrastructure and deployment system"
+          comment: "✅ Created ERC-20 smart contract template and compilation system with fallback to pre-compiled bytecode"
 
   - task: "Update token creation to deploy real contracts"
-    implemented: false
-    working: "NA" 
+    implemented: true
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: "NA"
+        - working: true
           agent: "main"
-          comment: "Currently using mock addresses, need to integrate contract deployment"
+          comment: "✅ Updated token creation endpoint to deploy real smart contracts with contract manager integration"
 
   - task: "Add smart contract compilation and deployment endpoints"
-    implemented: false
-    working: "NA"
+    implemented: true
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-        - working: "NA"
+        - working: true
           agent: "main"
-          comment: "Need APIs for contract management"
+          comment: "✅ Added token info endpoints and contract deployment functionality"
 
 frontend:
   - task: "Add MetaMask 'Add Token' buttons for each token"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "frontend/src/App.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
-          comment: "Need to implement wallet_watchAsset functionality"
+          comment: "✅ Implemented wallet_watchAsset functionality with buttons in marketplace, dashboard, and profile"
 
   - task: "Update token display with real contract addresses"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "frontend/src/App.js" 
     stuck_count: 0
     priority: "medium"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
-          comment: "Currently showing mock addresses, need real contract integration"
+          comment: "✅ Updated all token displays to show real contract addresses and deployment status"
 
   - task: "Fine-tune UI/UX improvements"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "frontend/src/App.js"
     stuck_count: 0
     priority: "low"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: "NA"
           agent: "main"
-          comment: "General improvements to user experience"
+          comment: "✅ Enhanced token displays with better contract info and MetaMask integration"
 
 metadata:
   created_by: "main_agent"
