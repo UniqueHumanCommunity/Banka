@@ -1,4 +1,4 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const fs = require('fs');
 const path = require('path');
 
@@ -10,18 +10,17 @@ async function deployContracts() {
     console.log("🚀 Iniciando deploy dos contratos BanKa na BNB Chain Testnet...");
     
     // Initialize Web3
-    const web3 = new Web3(BNB_TESTNET_URL);
-    
-    // Create account from mnemonic
     const HDWalletProvider = require('@truffle/hdwallet-provider');
     const provider = new HDWalletProvider(MNEMONIC, BNB_TESTNET_URL);
-    const web3Provider = new Web3(provider);
+    const web3 = new Web3(provider);
     
-    const accounts = await web3Provider.eth.getAccounts();
+    const accounts = await web3.eth.getAccounts();
     const deployer = accounts[0];
     
     console.log("📋 Deployer account:", deployer);
-    console.log("💰 Balance:", web3Provider.utils.fromWei(await web3Provider.eth.getBalance(deployer), 'ether'), "BNB");
+    
+    const balance = await web3.eth.getBalance(deployer);
+    console.log("💰 Balance:", web3.utils.fromWei(balance, 'ether'), "BNB");
     
     // Load contract artifacts
     const eventFactoryArtifact = JSON.parse(fs.readFileSync(path.join(__dirname, '../artifacts/contracts/EventFactory.sol/EventFactory.json')));
@@ -29,7 +28,7 @@ async function deployContracts() {
     // Deploy EventFactory
     console.log("📄 Deploying EventFactory...");
     
-    const EventFactory = new web3Provider.eth.Contract(eventFactoryArtifact.abi);
+    const EventFactory = new web3.eth.Contract(eventFactoryArtifact.abi);
     
     const eventFactoryDeploy = EventFactory.deploy({
         data: eventFactoryArtifact.bytecode
@@ -47,7 +46,7 @@ async function deployContracts() {
     console.log("✅ EventFactory deployed at:", eventFactory.options.address);
     
     // Verify deployment
-    const code = await web3Provider.eth.getCode(eventFactory.options.address);
+    const code = await web3.eth.getCode(eventFactory.options.address);
     if (code === '0x') {
         throw new Error("Contract deployment failed - no code at address");
     }
