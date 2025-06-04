@@ -895,16 +895,36 @@ function App() {
                   <div className="grid gap-4">
                     {userProfile.wallet.assets.tokens.map((token, index) => (
                       <div key={index} className="bg-white/5 rounded-lg p-4 border border-white/10">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center mb-3">
                           <div>
                             <h4 className="font-bold text-white">{token.name}</h4>
                             <p className="text-sm text-white/60">{token.event_name}</p>
+                            {token.address && (
+                              <p className="text-xs text-white/40 font-mono">{token.address.substr(0, 12)}...</p>
+                            )}
                           </div>
                           <div className="text-right">
                             <p className="text-2xl font-bold text-white">{token.balance}</p>
                             <p className="text-sm text-white/60">tokens</p>
                           </div>
                         </div>
+                        
+                        {/* Add to MetaMask button for profile tokens */}
+                        {token.address && (
+                          <button
+                            onClick={() => addTokenToMetaMask(
+                              token.address,
+                              token.name?.toUpperCase().substr(0, 5) || 'TOKEN',
+                              token.name,
+                              18
+                            )}
+                            disabled={loading}
+                            className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm disabled:opacity-50"
+                          >
+                            <span>🦊</span>
+                            <span>Adicionar ao MetaMask</span>
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
