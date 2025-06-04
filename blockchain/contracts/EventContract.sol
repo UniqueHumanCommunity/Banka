@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract EventContract is ReentrancyGuard, Ownable {
     string public eventName;
@@ -34,10 +34,11 @@ contract EventContract is ReentrancyGuard, Ownable {
         string memory _eventName,
         uint256 _eventDate,
         address _owner
-    ) Ownable(_owner) {
+    ) {
         eventName = _eventName;
         eventDate = _eventDate;
         isActive = true;
+        _transferOwnership(_owner);
     }
     
     // Create a new token type for this event
