@@ -23,6 +23,9 @@ WALLET_MNEMONIC = os.environ.get('WALLET_MNEMONIC', 'flee cluster north scissors
 EVENT_FACTORY_ADDRESS = os.environ.get('EVENT_FACTORY_ADDRESS', '0x0000000000000000000000000000000000000000')
 JWT_SECRET = os.environ.get('JWT_SECRET', 'banka-secret-key-2024')
 
+# Contract deployer private key - derived from mnemonic for system deployments
+DEPLOYER_PRIVATE_KEY = os.environ.get('DEPLOYER_PRIVATE_KEY', '0x' + 'a' * 64)  # Use environment variable in production
+
 # Initialize Web3
 try:
     w3 = Web3(Web3.HTTPProvider(WEB3_PROVIDER_URL))
@@ -32,6 +35,14 @@ try:
 except Exception as e:
     print(f"Failed to connect to blockchain: {e}")
     w3 = None
+
+# Initialize Contract Manager
+try:
+    contract_manager = create_contract_manager(WEB3_PROVIDER_URL, DEPLOYER_PRIVATE_KEY)
+    print("✅ Smart contract manager initialized")
+except Exception as e:
+    print(f"Failed to initialize contract manager: {e}")
+    contract_manager = None
 
 app = FastAPI(title="BanKa API", description="Blockchain Event Payment System")
 
