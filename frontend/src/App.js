@@ -1290,13 +1290,14 @@ function App() {
                   value={offlineFormData.token_address}
                   onChange={(e) => setOfflineFormData({...offlineFormData, token_address: e.target.value})}
                 >
-                  <option value="" className="bg-gray-800">Selecione um token</option>
+                  <option value="">Selecione um token</option>
                   {publicEvents.map(event => 
-                    event.tokens?.map(token => (
-                      <option key={token.contract_address} value={token.contract_address} className="bg-gray-800">
-                        {token.name} - {event.name} - R$ {(token.price_cents / 100).toFixed(2)}
-                      </option>
-                    ))
+                    event.tokens && event.tokens.length > 0 ? 
+                      event.tokens.map(token => (
+                        <option key={`${event.id}-${token.id}`} value={token.contract_address || token.id}>
+                          {token.name} - {event.name} - R$ {(token.price_cents / 100).toFixed(2)}
+                        </option>
+                      )) : null
                   )}
                 </select>
               </div>
