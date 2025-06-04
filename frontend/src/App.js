@@ -1521,31 +1521,49 @@ function App() {
                               {token.contract_address ? `${token.contract_address.substr(0, 12)}...` : 'N/A'}
                             </div>
                             
-                            <div className="flex gap-2">
-                              {(token.sale_mode === 'online' || token.sale_mode === 'both') && user && (
-                                <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                                  💳 Comprar
-                                </button>
-                              )}
-                              {user && (
-                                <button 
-                                  onClick={() => {
-                                    setOfflineFormData(prev => ({...prev, token_address: token.contract_address || token.id}));
-                                    setShowOfflineTransfer(true);
-                                  }}
-                                  className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                                >
-                                  🎁 Transferir
-                                </button>
-                              )}
-                              {!user && (
-                                <button 
-                                  onClick={() => setCurrentView('login')}
-                                  className="w-full px-3 py-2 bg-white/20 text-white rounded text-sm"
-                                >
-                                  Fazer Login
-                                </button>
-                              )}
+                            <div className="space-y-2">
+                              <div className="flex gap-2">
+                                {(token.sale_mode === 'online' || token.sale_mode === 'both') && user && (
+                                  <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                                    💳 Comprar
+                                  </button>
+                                )}
+                                {user && (
+                                  <button 
+                                    onClick={() => {
+                                      setOfflineFormData(prev => ({...prev, token_address: token.contract_address || token.id}));
+                                      setShowOfflineTransfer(true);
+                                    }}
+                                    className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                                  >
+                                    🎁 Transferir
+                                  </button>
+                                )}
+                                {!user && (
+                                  <button 
+                                    onClick={() => setCurrentView('login')}
+                                    className="w-full px-3 py-2 bg-white/20 text-white rounded text-sm"
+                                  >
+                                    Fazer Login
+                                  </button>
+                                )}
+                              </div>
+                              
+                              {/* Add to MetaMask Button - Always visible */}
+                              <button
+                                onClick={() => addTokenToMetaMask(
+                                  token.contract_address,
+                                  token.symbol || token.name?.toUpperCase().substr(0, 5) || 'TOKEN',
+                                  token.full_name || token.name,
+                                  token.decimals || 18
+                                )}
+                                disabled={!token.contract_address || token.contract_address.startsWith('0x000000') || loading}
+                                className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={!token.contract_address || token.contract_address.startsWith('0x000000') ? 'Token ainda não deployado na blockchain' : 'Adicionar token ao MetaMask'}
+                              >
+                                <span>🦊</span>
+                                <span>Adicionar ao MetaMask</span>
+                              </button>
                             </div>
                           </div>
                         ))}
