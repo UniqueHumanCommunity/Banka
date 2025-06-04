@@ -26,8 +26,28 @@ WALLET_MNEMONIC = os.environ.get('WALLET_MNEMONIC', 'flee cluster north scissors
 EVENT_FACTORY_ADDRESS = os.environ.get('EVENT_FACTORY_ADDRESS', '0x0000000000000000000000000000000000000000')
 JWT_SECRET = os.environ.get('JWT_SECRET', 'banka-secret-key-2024')
 
-# Contract deployer private key - derived from mnemonic for system deployments
-DEPLOYER_PRIVATE_KEY = os.environ.get('DEPLOYER_PRIVATE_KEY', '0x' + 'a' * 64)  # Use environment variable in production
+# Derive deployer private key from mnemonic for real contract deployments
+def get_deployer_private_key():
+    """Derive a real private key from the mnemonic for contract deployment"""
+    try:
+        # Enable unaudited HD wallet features
+        Account.enable_unaudited_hdwallet_features()
+        
+        # Generate account from mnemonic
+        account = Account.from_mnemonic(WALLET_MNEMONIC)
+        return account.key.hex()
+    except Exception as e:
+        print(f"Failed to derive private key from mnemonic: {e}")
+        # Fallback to a generated key for testing
+        try:
+            test_account = Account.create()
+            return test_account.key.hex()
+        except Exception as e2:
+            print(f"Failed to create test account: {e2}")
+            return '0x' + 'a' * 64  # Ultimate fallback
+
+# Contract deployer private key
+DEPLOYER_PRIVATE_KEY = os.environ.get('DEPLOYER_PRIVATE_KEY') or get_deployer_private_key()
 
 # Initialize Web3
 try:
