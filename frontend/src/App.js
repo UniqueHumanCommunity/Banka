@@ -655,25 +655,7 @@ function App() {
             <span className="text-xl">🦊</span>
             <span>{isLogin ? 'Login' : 'Registrar'} com MetaMask</span>
           </button>
-
-          <IDKitWidget
-            app_id={WORLD_APP_ID}
-            action={WORLD_ACTION}
-            verification_level={VerificationLevel.Device}
-            handleVerify={onWorldIDSuccess}
-            onSuccess={onWorldIDSuccess}
-          >
-            {({ open }) => (
-              <button
-                onClick={open}
-                disabled={loading}
-                className="w-full flex items-center justify-center space-x-3 py-3 px-4 bg-gradient-to-r from-gray-800 to-black hover:from-black hover:to-gray-900 text-white rounded-lg transition-all disabled:opacity-50 shadow-lg"
-              >
-                <span className="text-xl">🌍</span>
-                <span>{isLogin ? 'Login' : 'Registrar'} com World ID</span>
-              </button>
-            )}
-          </IDKitWidget>
+{/* World ID login removed */}
         </div>
 
         <div className="flex items-center">
