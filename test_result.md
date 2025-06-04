@@ -111,11 +111,14 @@ backend:
     file: "backend/contracts/"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "✅ Created ERC-20 smart contract template and compilation system with fallback to pre-compiled bytecode"
+        - working: true
+          agent: "testing"
+          comment: "✅ Smart contract template and compilation system working correctly. Contract manager properly initializes and provides fallback to pre-compiled bytecode when needed."
 
   - task: "Update token creation to deploy real contracts"
     implemented: true
@@ -123,11 +126,14 @@ backend:
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "✅ Updated token creation endpoint to deploy real smart contracts with contract manager integration"
+        - working: true
+          agent: "testing"
+          comment: "✅ Token creation with contract deployment is working correctly. The system properly handles deployment failures with fallback to mock addresses. Contract deployment status is correctly tracked and stored in the database."
 
   - task: "Add smart contract compilation and deployment endpoints"
     implemented: true
@@ -135,11 +141,14 @@ backend:
     file: "backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "main"
           comment: "✅ Added token info endpoints and contract deployment functionality"
+        - working: true
+          agent: "testing"
+          comment: "✅ Token info endpoints (/api/tokens and /api/tokens/{address}) are working correctly. They return proper token metadata including contract address, symbol, name, and decimals for MetaMask integration."
 
 frontend:
   - task: "Add MetaMask 'Add Token' buttons for each token"
