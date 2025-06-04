@@ -1416,118 +1416,118 @@ function App() {
 
           {/* Events Grid */}
           <div className="grid gap-6">
-            {Array.isArray(publicEvents) && publicEvents.length > 0 ? publicEvents.map((event) => (
-              <div key={event.id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-2">{event.name || 'Evento sem nome'}</h3>
-                    <p className="text-white/70 mb-2">
-                      📅 {event.date ? new Date(event.date).toLocaleDateString('pt-BR') : 'Data não informada'}
-                      {event.location && ` • 📍 ${event.location}`}
-                    </p>
-                    {event.description && (
-                      <p className="text-white/60 mb-4">{event.description}</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm border border-green-500/30">
-                      🟢 Ativo
-                    </span>
-                  </div>
-                </div>
-                
-                {event.tokens && Array.isArray(event.tokens) && event.tokens.length > 0 ? (
-                  <div>
-                    <h4 className="font-medium text-white mb-3">🎫 Tokens Disponíveis:</h4>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {event.tokens.map((token) => (
-                        <div key={token.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="font-medium text-lg text-white">{token.name || 'Token'}</div>
-                            <div className="flex items-center space-x-2">
-                              <div className="text-lg font-bold text-green-400">
-                                R$ {((token.price_cents || 0) / 100).toFixed(2)}
-                              </div>
-                              <a
-                                href={`https://testnet.bscscan.com/address/${token.contract_address || ''}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-400 hover:text-blue-300 text-lg"
-                                title="Ver contrato no BSCScan"
-                              >
-                                ℹ️
-                              </a>
-                            </div>
-                          </div>
-                          
-                          <div className="text-sm text-white/70 mb-3">
-                            📦 Disponível: {token.initial_supply - token.total_sold}
-                          </div>
-                          
-                          <div className="mb-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              token.sale_mode === 'online' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                              token.sale_mode === 'offline' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                              'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                            }`}>
-                              {token.sale_mode === 'online' ? '💳 Apenas Online' : 
-                               token.sale_mode === 'offline' ? '🏪 Apenas Offline' : 
-                               '💳🏪 Online + Offline'}
-                            </span>
-                          </div>
-                          
-                          <div className="text-xs text-white/50 mb-3 font-mono">
-                            {token.contract_address?.substr(0, 12)}...
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            {(token.sale_mode === 'online' || token.sale_mode === 'both') && user && (
-                              <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                                💳 Comprar
-                              </button>
-                            )}
-                            {user && (
-                              <button 
-                                onClick={() => {
-                                  setOfflineFormData(prev => ({...prev, token_address: token.contract_address}));
-                                  setShowOfflineTransfer(true);
-                                }}
-                                className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                              >
-                                🎁 Transferir
-                              </button>
-                            )}
-                            {!user && (
-                              <button 
-                                onClick={() => setCurrentView('home')}
-                                className="w-full px-3 py-2 bg-white/20 text-white rounded text-sm"
-                              >
-                                Fazer Login
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+            {Array.isArray(publicEvents) && publicEvents.length > 0 ? (
+              publicEvents.map((event) => (
+                <div key={event.id} className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-white mb-2">{event.name || 'Evento sem nome'}</h3>
+                      <p className="text-white/70 mb-2">
+                        📅 {event.date ? new Date(event.date).toLocaleDateString('pt-BR') : 'Data não informada'}
+                        {event.location && ` • 📍 ${event.location}`}
+                      </p>
+                      {event.description && (
+                        <p className="text-white/60 mb-4">{event.description}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm border border-green-500/30">
+                        🟢 Ativo
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-white/50 text-center py-8">📭 Nenhum token disponível para este evento</p>
-                )}
+                  
+                  {event.tokens && Array.isArray(event.tokens) && event.tokens.length > 0 ? (
+                    <div>
+                      <h4 className="font-medium text-white mb-3">🎫 Tokens Disponíveis:</h4>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {event.tokens.map((token) => (
+                          <div key={token.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="font-medium text-lg text-white">{token.name || 'Token'}</div>
+                              <div className="flex items-center space-x-2">
+                                <div className="text-lg font-bold text-green-400">
+                                  R$ {((token.price_cents || 0) / 100).toFixed(2)}
+                                </div>
+                                <a
+                                  href={`https://testnet.bscscan.com/address/${token.contract_address || ''}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:text-blue-300 text-lg"
+                                  title="Ver contrato no BSCScan"
+                                >
+                                  ℹ️
+                                </a>
+                              </div>
+                            </div>
+                            
+                            <div className="text-sm text-white/70 mb-3">
+                              📦 Disponível: {(token.initial_supply || 0) - (token.total_sold || 0)}
+                            </div>
+                            
+                            <div className="mb-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                token.sale_mode === 'online' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                                token.sale_mode === 'offline' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
+                                'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                              }`}>
+                                {token.sale_mode === 'online' ? '💳 Apenas Online' : 
+                                 token.sale_mode === 'offline' ? '🏪 Apenas Offline' : 
+                                 '💳🏪 Online + Offline'}
+                              </span>
+                            </div>
+                            
+                            <div className="text-xs text-white/50 mb-3 font-mono">
+                              {token.contract_address ? `${token.contract_address.substr(0, 12)}...` : 'N/A'}
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              {(token.sale_mode === 'online' || token.sale_mode === 'both') && user && (
+                                <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                                  💳 Comprar
+                                </button>
+                              )}
+                              {user && (
+                                <button 
+                                  onClick={() => {
+                                    setOfflineFormData(prev => ({...prev, token_address: token.contract_address || token.id}));
+                                    setShowOfflineTransfer(true);
+                                  }}
+                                  className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                                >
+                                  🎁 Transferir
+                                </button>
+                              )}
+                              {!user && (
+                                <button 
+                                  onClick={() => setCurrentView('login')}
+                                  className="w-full px-3 py-2 bg-white/20 text-white rounded text-sm"
+                                >
+                                  Fazer Login
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-white/50 text-center py-8">📭 Nenhum token disponível para este evento</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">🎪</div>
+                <h3 className="text-xl font-medium text-white/70 mb-2">
+                  Nenhum evento disponível
+                </h3>
+                <p className="text-white/50">
+                  Aguarde novos eventos serem criados
+                </p>
               </div>
-            ))}
+            )}
           </div>
-
-          {publicEvents.length === 0 && (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🎪</div>
-              <h3 className="text-xl font-medium text-white/70 mb-2">
-                Nenhum evento disponível
-              </h3>
-              <p className="text-white/50">
-                Aguarde novos eventos serem criados
-              </p>
-            </div>
-          )}
         </div>
 
         {showOfflineTransfer && <OfflineTransferForm />}
