@@ -258,6 +258,12 @@ function App() {
   };
 
   const createEvent = async (eventData) => {
+    if (!token) {
+      alert('Você precisa estar logado para criar um evento');
+      setCurrentView('login');
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/api/events`, {
@@ -268,15 +274,19 @@ function App() {
         },
         body: JSON.stringify(eventData),
       });
+      
       const data = await response.json();
       if (response.ok) {
-        showSuccessMessage('Evento criado com sucesso!');
+        alert('Evento criado com sucesso!');
         await loadUserProfile();
+      } else if (response.status === 401) {
+        alert('Sessão expirada. Faça login novamente.');
+        logout();
       } else {
-        showErrorMessage('Erro ao criar evento: ' + data.detail);
+        alert('Erro ao criar evento: ' + (data.detail || 'Erro desconhecido'));
       }
     } catch (error) {
-      showErrorMessage('Erro ao criar evento: ' + error.message);
+      alert('Erro ao criar evento: ' + error.message);
     }
     setLoading(false);
   };
