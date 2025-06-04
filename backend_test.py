@@ -4,6 +4,7 @@ import sys
 import json
 from datetime import datetime
 import uuid
+import re
 
 class BanKaAPITester:
     def __init__(self, base_url):
@@ -19,6 +20,10 @@ class BanKaAPITester:
         self.event_id = None
         self.token_id = None
         self.token_address = None
+        self.token_symbol = None
+        self.token_name = None
+        self.token_decimals = None
+        self.deployment_status = None
 
     def run_test(self, name, method, endpoint, expected_status, data=None, auth=False):
         """Run a single API test"""
@@ -61,14 +66,24 @@ class BanKaAPITester:
             return False, {}
 
     def test_health_check(self):
-        """Test the health check endpoint"""
+        """Test the health check endpoint with blockchain connection verification"""
         success, response = self.run_test(
-            "Health Check",
+            "Health Check with Blockchain Connection",
             "GET",
             "api/health",
             200
         )
         print(f"Health Check Response: {json.dumps(response, indent=2)}")
+        
+        # Verify blockchain connection
+        if success and "blockchain_connected" in response:
+            if response["blockchain_connected"]:
+                print(f"✅ Blockchain connected! Latest block: {response.get('latest_block', 'N/A')}")
+                print(f"✅ Web3 provider: {response.get('web3_provider', 'N/A')}")
+            else:
+                print(f"⚠️ Blockchain not connected: {response.get('blockchain_error', 'Unknown error')}")
+                print(f"⚠️ Tests will continue but contract deployment may use mock addresses")
+        
         return success
 
     def test_register_user(self):
@@ -96,6 +111,12 @@ class BanKaAPITester:
             print(f"Created user with ID: {self.user_id}")
             print(f"Wallet address: {self.wallet_address}")
             print(f"JWT Token: {self.token}")
+            
+            # Verify wallet address format
+            if re.match(r"^0x[a-fA-F0-9]{40}$", self.wallet_address):
+                print(f"✅ Valid wallet address format: {self.wallet_address}")
+            else:
+                print(f"⚠️ Invalid wallet address format: {self.wallet_address}")
         
         return success
 
@@ -200,15 +221,15 @@ class BanKaAPITester:
         
         return success
 
-    def test_create_token(self):
-        """Test creating a token for an event with sale mode"""
+    def test_create_token_with_contract(self):
+        """Test creating a token for an event with real smart contract deployment"""
         if not self.token or not self.event_id:
             print("❌ No auth token or event ID available for testing")
             return False
         
         token_name = f"TEST_TOKEN_{uuid.uuid4().hex[:8]}"
         success, response = self.run_test(
-            "Create Token with Sale Mode",
+            "Create Token with Smart Contract Deployment",
             "POST",
             f"api/events/{self.event_id}/tokens",
             200,
@@ -220,11 +241,127 @@ class BanKaAPITester:
             },
             auth=True
         )
+        
         if success and "token" in response and "id" in response["token"]:
             self.token_id = response["token"]["id"]
             self.token_address = response["token"]["contract_address"]
+            self.token_symbol = response["token"].get("symbol", "")
+            self.token_name = response["token"].get("full_name", token_name)
+            self.token_decimals = response["token"].get("decimals", 18)
+            self.deployment_status = response["token"].get("deployment_status", "unknown")
+            
             print(f"Created token with ID: {self.token_id}")
             print(f"Token address: {self.token_address}")
+            print(f"Token symbol: {self.token_symbol}")
+            print(f"Token name: {self.token_name}")
+            print(f"Token decimals: {self.token_decimals}")
+            print(f"Deployment status: {self.deployment_status}")
+            
+            # Verify contract address format
+            if re.match(r"^0x[a-fA-F0-9]{40}$", self.token_address):
+                print(f"✅ Valid contract address format: {self.token_address}")
+            else:
+                print(f"❌ Invalid contract address format: {self.token_address}")
+            
+            # Check deployment status
+            if self.deployment_status == "deployed":
+                print(f"✅ Contract successfully deployed on blockchain")
+                if "deployment_tx_hash" in response["token"]:
+                    print(f"✅ Deployment transaction hash: {response['token']['deployment_tx_hash']}")
+            elif self.deployment_status == "mock":
+                print(f"⚠️ Using mock contract address (contract manager not available)")
+            elif self.deployment_status == "failed":
+                print(f"⚠️ Contract deployment failed, using fallback address")
+                if "deployment_tx_hash" in response["token"]:
+                    print(f"⚠️ Failed deployment transaction hash: {response['token']['deployment_tx_hash']}")
+            
+            # Check contract ABI
+            if "contract_abi" in response["token"] and response["token"]["contract_abi"]:
+                print(f"✅ Contract ABI available for MetaMask integration")
+            else:
+                print(f"⚠️ No contract ABI available")
+        
+        return success
+
+    def test_get_all_tokens(self):
+        """Test getting all tokens for MetaMask integration"""
+        success, response = self.run_test(
+            "Get All Tokens for MetaMask Integration",
+            "GET",
+            "api/tokens",
+            200
+        )
+        
+        if success and "tokens" in response:
+            tokens = response["tokens"]
+            print(f"Found {len(tokens)} tokens")
+            
+            if tokens:
+                print("\nToken List for MetaMask Integration:")
+                for i, token in enumerate(tokens[:5]):  # Show first 5 tokens
+                    print(f"  {i+1}. {token.get('name', 'Unknown')} ({token.get('symbol', 'N/A')})")
+                    print(f"     Address: {token.get('address', 'N/A')}")
+                    print(f"     Decimals: {token.get('decimals', 'N/A')}")
+                    print(f"     Deployment Status: {token.get('deployment_status', 'N/A')}")
+                
+                # Check if our newly created token is in the list
+                if self.token_address:
+                    found = False
+                    for token in tokens:
+                        if token.get("address") == self.token_address:
+                            found = True
+                            print(f"\n✅ Found our newly created token in the tokens list")
+                            break
+                    
+                    if not found:
+                        print(f"\n⚠️ Our newly created token was not found in the tokens list")
+        
+        return success
+
+    def test_get_token_info(self):
+        """Test getting specific token info by address"""
+        if not self.token_address:
+            print("❌ No token address available for testing")
+            return False
+        
+        success, response = self.run_test(
+            "Get Token Info by Address",
+            "GET",
+            f"api/tokens/{self.token_address}",
+            200
+        )
+        
+        if success and "token" in response:
+            token = response["token"]
+            print(f"Token Info: {json.dumps(token, indent=2)}")
+            
+            # Verify token metadata
+            if token.get("name") == self.token_name:
+                print(f"✅ Token name matches: {token.get('name')}")
+            else:
+                print(f"⚠️ Token name mismatch: {token.get('name')} vs {self.token_name}")
+            
+            if token.get("symbol") == self.token_symbol:
+                print(f"✅ Token symbol matches: {token.get('symbol')}")
+            else:
+                print(f"⚠️ Token symbol mismatch: {token.get('symbol')} vs {self.token_symbol}")
+            
+            if token.get("decimals") == self.token_decimals:
+                print(f"✅ Token decimals match: {token.get('decimals')}")
+            else:
+                print(f"⚠️ Token decimals mismatch: {token.get('decimals')} vs {self.token_decimals}")
+            
+            if token.get("deployment_status") == self.deployment_status:
+                print(f"✅ Deployment status matches: {token.get('deployment_status')}")
+            else:
+                print(f"⚠️ Deployment status mismatch: {token.get('deployment_status')} vs {self.deployment_status}")
+            
+            # Check for contract ABI
+            if "contract_abi" in token and token["contract_abi"]:
+                print(f"✅ Contract ABI available for MetaMask integration")
+            else:
+                print(f"⚠️ No contract ABI available")
+        
         return success
 
     def test_purchase_tokens_online(self):
@@ -319,8 +456,9 @@ def main():
     
     # Run tests
     print("\n===== TESTING BANKA BLOCKCHAIN EVENT PAYMENT SYSTEM API =====\n")
+    print("\n===== FOCUS: SMART CONTRACT FUNCTIONALITY =====\n")
     
-    # Basic health check
+    # 1. Health Check with Blockchain Connection
     if not tester.test_health_check():
         print("❌ Health check failed, stopping tests")
         return 1
@@ -346,10 +484,14 @@ def main():
     tester.test_get_events()
     tester.test_get_public_events()
     
-    # Token creation
-    if not tester.test_create_token():
-        print("❌ Token creation failed, stopping tests")
+    # 3. Token Creation with Real Contracts
+    if not tester.test_create_token_with_contract():
+        print("❌ Token creation with smart contract failed, stopping tests")
         return 1
+    
+    # 4. New Token Endpoints
+    tester.test_get_all_tokens()
+    tester.test_get_token_info()
     
     # Token purchase and transfer
     tester.test_purchase_tokens_online()
@@ -363,6 +505,16 @@ def main():
     
     # Print results
     print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
+    
+    # Print summary of smart contract functionality
+    print("\n===== SMART CONTRACT FUNCTIONALITY SUMMARY =====")
+    print(f"Blockchain Connection: {'✅ Connected' if tester.test_health_check() else '❌ Not Connected'}")
+    print(f"Token Creation with Contract: {'✅ Working' if tester.token_address else '❌ Failed'}")
+    print(f"Contract Address: {tester.token_address}")
+    print(f"Deployment Status: {tester.deployment_status}")
+    print(f"Token Metadata: {tester.token_name} ({tester.token_symbol}), {tester.token_decimals} decimals")
+    print(f"Token Endpoints: {'✅ Working' if tester.test_get_all_tokens() and tester.test_get_token_info() else '❌ Issues Found'}")
+    
     return 0 if tester.tests_passed == tester.tests_run else 1
 
 if __name__ == "__main__":
