@@ -39,7 +39,7 @@ async function deployContracts() {
     
     const eventFactory = await eventFactoryDeploy.send({
         from: deployer,
-        gas: Math.round(gas * 1.2), // Add 20% buffer
+        gas: Number(gas) + 100000, // Add buffer as number
         gasPrice: '20000000000' // 20 gwei
     });
     
