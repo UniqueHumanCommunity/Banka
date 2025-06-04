@@ -565,10 +565,11 @@ async def create_token(event_id: str, token: TokenCreate, current_user: dict = D
                     deployment_status = "deployed"
                     print(f"✅ Contract deployed successfully at: {contract_address}")
                 else:
-                    print(f"❌ Contract deployment failed: {deployment_result['error']}")
-                    # Fallback to mock address but log the error
-                    contract_address = f"0x{uuid.uuid4().hex[:40]}"
-                    deployment_status = "failed"
+                    print(f"🔄 Using fallback system: {deployment_result.get('error', 'Unknown error')}")
+                    contract_address = deployment_result["contract_address"]
+                    contract_abi = deployment_result["abi"]
+                    deployment_tx_hash = deployment_result["transaction_hash"]
+                    deployment_status = "fallback"
                     
             except Exception as e:
                 print(f"❌ Contract deployment error: {e}")
