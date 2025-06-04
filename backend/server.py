@@ -15,6 +15,9 @@ from eth_account import Account
 import json
 
 # Smart contract imports
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from contracts.simple_contract_manager import create_contract_manager
 
 # Web3 setup
