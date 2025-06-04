@@ -203,10 +203,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Create real ERC-20 smart contracts for tokens"
-    - "Update token creation to deploy real contracts"
-    - "Add MetaMask 'Add Token' buttons for each token"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
