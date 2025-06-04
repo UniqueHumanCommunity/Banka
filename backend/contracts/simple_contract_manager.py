@@ -168,21 +168,24 @@ class ContractManager:
         owner_address: str
     ) -> Dict[str, Any]:
         """
-        Deploy a real ERC-20 token contract onchain
+        Deploy a real ERC-20 token contract onchain with emergency fallback
         """
         try:
             if not self.is_connected():
-                raise Exception("Not connected to blockchain")
+                print("⚠️ Not connected to blockchain, using fallback")
+                return self._create_fallback_token(token_name, token_symbol, total_supply, owner_address)
             
-            print(f"🚀 Starting real contract deployment for {token_name} ({token_symbol})")
+            print(f"🚀 Starting contract deployment for {token_name} ({token_symbol})")
             
             # Check deployer balance
             balance_wei = self.w3.eth.get_balance(self.deployer_account.address)
             balance_bnb = self.w3.from_wei(balance_wei, 'ether')
             print(f"💰 Deployer balance: {balance_bnb} BNB")
             
-            if balance_bnb < 0.01:  # Need at least 0.01 BNB for deployment
-                print(f"⚠️ Low balance for deployment. Please fund deployer address: {self.deployer_account.address}")
+            # EMERGENCY FIX: If balance is too low, use fallback immediately
+            if balance_bnb < 0.005:  # Minimum 0.005 BNB required
+                print(f"🚨 EMERGENCY: Insufficient balance ({balance_bnb} BNB) - Using fallback")
+                return self._create_fallback_token(token_name, token_symbol, total_supply, owner_address)
             
             # Get contract data
             contract_data = self.get_simple_erc20_contract()
@@ -193,15 +196,16 @@ class ContractManager:
                 bytecode=contract_data['bytecode']
             )
             
-            # Get current gas price
+            # Get current gas price and reduce it for emergency deploy
             gas_price = self.w3.eth.gas_price
-            print(f"⛽ Current gas price: {self.w3.from_wei(gas_price, 'gwei')} Gwei")
+            emergency_gas_price = int(gas_price * 0.8)  # Reduce gas price by 20%
+            print(f"⛽ Emergency gas price: {self.w3.from_wei(emergency_gas_price, 'gwei')} Gwei")
             
             # Get nonce
             nonce = self.w3.eth.get_transaction_count(self.deployer_account.address)
             print(f"🔢 Deployer nonce: {nonce}")
             
-            # Build constructor transaction with optimized gas settings
+            # Emergency deployment with minimal gas
             constructor_txn = contract.constructor(
                 token_name,
                 token_symbol,
@@ -210,11 +214,17 @@ class ContractManager:
             ).build_transaction({
                 'from': self.deployer_account.address,
                 'nonce': nonce,
-                'gas': 1500000,  # Reduced gas limit for simpler contract
-                'gasPrice': gas_price * 2,  # Higher gas price for faster confirmation
+                'gas': 800000,  # EMERGENCY: Minimal gas limit
+                'gasPrice': emergency_gas_price,
             })
             
-            print(f"💸 Estimated gas cost: {self.w3.from_wei(constructor_txn['gas'] * gas_price, 'ether')} BNB")
+            estimated_cost = self.w3.from_wei(constructor_txn['gas'] * emergency_gas_price, 'ether')
+            print(f"💸 Emergency deploy cost: {estimated_cost} BNB")
+            
+            # Final balance check
+            if balance_bnb < float(estimated_cost) * 1.1:  # 10% buffer
+                print(f"🚨 Still insufficient for emergency deploy - Using fallback")
+                return self._create_fallback_token(token_name, token_symbol, total_supply, owner_address)
             
             # Sign transaction
             signed_txn = self.w3.eth.account.sign_transaction(
@@ -222,64 +232,71 @@ class ContractManager:
                 private_key=self.deployer_private_key
             )
             
-            # Send transaction
+            # Send transaction with timeout
             tx_hash = self.w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            print(f"📤 Transaction sent: {tx_hash.hex()}")
+            print(f"📤 Emergency transaction sent: {tx_hash.hex()}")
             
-            # Wait for transaction receipt with timeout
-            print(f"⏳ Waiting for deployment confirmation...")
-            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=300)
+            # Wait for transaction receipt with shorter timeout
+            print(f"⏳ Waiting for emergency deployment...")
+            try:
+                tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)  # Shorter timeout
+                
+                if tx_receipt.status == 1:
+                    contract_address = tx_receipt.contractAddress
+                    print(f"✅ EMERGENCY DEPLOY SUCCESS!")
+                    print(f"📍 Contract address: {contract_address}")
+                    
+                    return {
+                        'success': True,
+                        'contract_address': contract_address,
+                        'transaction_hash': tx_hash.hex(),
+                        'abi': contract_data['abi'],
+                        'gas_used': tx_receipt.gasUsed,
+                        'block_number': tx_receipt.blockNumber,
+                        'token_name': token_name,
+                        'token_symbol': token_symbol,
+                        'total_supply': total_supply,
+                        'decimals': 18,
+                        'owner': owner_address,
+                        'deployment_type': 'emergency'
+                    }
+                else:
+                    raise Exception(f"Emergency transaction failed. Status: {tx_receipt.status}")
             
-            if tx_receipt.status == 1:
-                contract_address = tx_receipt.contractAddress
-                print(f"✅ Contract deployed successfully!")
-                print(f"📍 Contract address: {contract_address}")
-                print(f"⛽ Gas used: {tx_receipt.gasUsed:,}")
-                print(f"🧾 Block number: {tx_receipt.blockNumber}")
-                
-                # Verify the contract by calling a view function
-                deployed_contract = self.w3.eth.contract(address=contract_address, abi=contract_data['abi'])
-                try:
-                    contract_name = deployed_contract.functions.name().call()
-                    contract_symbol = deployed_contract.functions.symbol().call()
-                    contract_total_supply = deployed_contract.functions.totalSupply().call()
-                    
-                    print(f"🔍 Contract verification:")
-                    print(f"   Name: {contract_name}")
-                    print(f"   Symbol: {contract_symbol}")
-                    print(f"   Total Supply: {contract_total_supply}")
-                    
-                except Exception as e:
-                    print(f"⚠️ Contract verification failed: {e}")
-                
-                return {
-                    'success': True,
-                    'contract_address': contract_address,
-                    'transaction_hash': tx_hash.hex(),
-                    'abi': contract_data['abi'],
-                    'gas_used': tx_receipt.gasUsed,
-                    'block_number': tx_receipt.blockNumber,
-                    'token_name': token_name,
-                    'token_symbol': token_symbol,
-                    'total_supply': total_supply,
-                    'decimals': 18,
-                    'owner': owner_address
-                }
-            else:
-                raise Exception(f"Transaction failed. Status: {tx_receipt.status}")
+            except Exception as e:
+                print(f"⚠️ Emergency deploy timeout/failed: {e}")
+                return self._create_fallback_token(token_name, token_symbol, total_supply, owner_address)
                 
         except Exception as e:
             error_msg = str(e)
-            print(f"❌ Contract deployment failed: {error_msg}")
-            logger.error(f"Contract deployment failed: {e}")
-            
-            return {
-                'success': False,
-                'error': error_msg,
-                'contract_address': None,
-                'transaction_hash': None,
-                'abi': None
-            }
+            print(f"🚨 Emergency deploy failed: {error_msg}")
+            return self._create_fallback_token(token_name, token_symbol, total_supply, owner_address)
+    
+    def _create_fallback_token(self, token_name: str, token_symbol: str, total_supply: int, owner_address: str) -> Dict[str, Any]:
+        """Create a fallback token when deployment fails"""
+        # Generate a deterministic mock address based on token data
+        import hashlib
+        data_string = f"{token_name}{token_symbol}{total_supply}{owner_address}"
+        hash_object = hashlib.md5(data_string.encode())
+        mock_address = f"0x{hash_object.hexdigest()[:40]}"
+        
+        print(f"🔄 Creating fallback token at: {mock_address}")
+        
+        return {
+            'success': False,
+            'contract_address': mock_address,
+            'transaction_hash': None,
+            'abi': self.get_simple_erc20_contract()['abi'],
+            'gas_used': 0,
+            'block_number': None,
+            'token_name': token_name,
+            'token_symbol': token_symbol,
+            'total_supply': total_supply,
+            'decimals': 18,
+            'owner': owner_address,
+            'deployment_type': 'fallback',
+            'error': 'Emergency fallback used - insufficient funds or network issues'
+        }
     
     def get_contract_instance(self, contract_address: str, abi: list):
         """Get a contract instance for interaction"""
