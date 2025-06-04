@@ -542,14 +542,14 @@ async def purchase_tokens_online(purchase: TokenPurchaseOnline, current_user: di
 
 @app.post("/api/transfer/offline")
 async def transfer_tokens_offline(transfer: TokenTransferOffline, current_user: dict = Depends(get_current_user)):
-    """Transfer tokens offline (cashier sends to user)"""
+    """Transfer tokens offline (simplified for presentation mode - any user can transfer)"""
     try:
         # Find target user
         target_user = await db.users.find_one({"email": transfer.user_email})
         if not target_user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Verify cashier authorization (simplified for MVP)
+        # PRESENTATION MODE: Allow any authenticated user to transfer tokens
         # In production, verify that current_user is authorized cashier for this event
         
         transfer_data = {
@@ -561,11 +561,11 @@ async def transfer_tokens_offline(transfer: TokenTransferOffline, current_user: 
             "to_wallet": target_user["wallet_address"],
             "token_address": transfer.token_address,
             "amount": transfer.amount,
-            "transfer_type": "offline",
+            "transfer_type": "offline_admin",
             "cashier_station": transfer.cashier_id,
             "timestamp": datetime.datetime.utcnow(),
             "status": "completed",
-            "tx_hash": f"0x{'offline' * 12}{uuid.uuid4().hex[:12]}"  # Mock transaction hash
+            "tx_hash": f"0x{'admin' * 13}{uuid.uuid4().hex[:12]}"  # Mock transaction hash
         }
         
         # Save transfer record
@@ -577,9 +577,11 @@ async def transfer_tokens_offline(transfer: TokenTransferOffline, current_user: 
             "user_id": target_user["id"],
             "user_wallet": target_user["wallet_address"],
             "token_address": transfer.token_address,
+            "token_name": "Admin Transfer",
+            "event_name": "Admin Transfer",
             "amount": transfer.amount,
-            "payment_method": "offline",
-            "payment_type": "offline",
+            "payment_method": "admin_transfer",
+            "payment_type": "offline_admin",
             "timestamp": datetime.datetime.utcnow(),
             "status": "completed",
             "tx_hash": transfer_data["tx_hash"]
@@ -589,7 +591,7 @@ async def transfer_tokens_offline(transfer: TokenTransferOffline, current_user: 
         transfer_data.pop("_id", None)
         return {
             "transfer": transfer_data,
-            "message": "Tokens sent to user wallet successfully"
+            "message": f"✅ {transfer.amount} tokens transferred to {target_user['name']} ({target_user['email']}) successfully!"
         }
     except HTTPException:
         raise
