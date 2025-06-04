@@ -6,29 +6,31 @@
   text-align: left;
 }
 
+/* Enhanced Professional Styling */
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: rgba(15, 23, 42, 0.1);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: rgba(99, 102, 241, 0.5);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgba(99, 102, 241, 0.7);
 }
 
-/* Custom animations */
-@keyframes fadeIn {
+/* Enhanced animations */
+@keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -36,18 +38,50 @@
   }
 }
 
-.fade-in {
-  animation: fadeIn 0.5s ease-out;
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-/* Glass morphism effect */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+/* Glass morphism enhanced */
 .glass {
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px);
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.1);
 }
 
-/* Gradient text */
+.glass-dark {
+  backdrop-filter: blur(20px);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+}
+
+/* Professional gradient texts */
 .gradient-text {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
@@ -55,24 +89,48 @@
   background-clip: text;
 }
 
-/* Custom button hover effects */
+.gradient-text-gold {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Enhanced button styles */
 .btn-primary {
-  @apply bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-blue-700 hover:scale-105 hover:shadow-lg;
+  @apply bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:scale-105 hover:shadow-lg;
 }
 
 .btn-secondary {
-  @apply bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-gray-200 hover:scale-105;
+  @apply bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:from-gray-700 hover:to-gray-800 hover:scale-105;
 }
 
-/* Card hover effects */
+.btn-success {
+  @apply bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:from-green-700 hover:to-green-800 hover:scale-105 hover:shadow-lg;
+}
+
+.btn-warning {
+  @apply bg-gradient-to-r from-yellow-600 to-orange-600 text-black px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:from-yellow-700 hover:to-orange-700 hover:scale-105 hover:shadow-lg;
+}
+
+/* Enhanced card styles */
 .card-hover {
-  @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+  @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02];
 }
 
-/* Loading spinner */
+.card-glow {
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.2);
+  transition: all 0.3s ease;
+}
+
+.card-glow:hover {
+  box-shadow: 0 0 50px rgba(99, 102, 241, 0.4);
+}
+
+/* Professional loading spinner */
 .spinner {
-  border: 4px solid #f3f4f6;
-  border-top: 4px solid #3b82f6;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid #6366f1;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -85,168 +143,222 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Responsive design helpers */
-@media (max-width: 768px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
+/* Enhanced form styling */
+.form-input {
+  @apply w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm;
 }
 
-/* Custom form styling */
-.form-input {
-  @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200;
+.form-input:focus {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 .form-label {
-  @apply block text-sm font-medium text-gray-700 mb-2;
+  @apply block text-sm font-medium text-white/80 mb-2;
 }
 
-/* Modal overlay */
+/* Professional modal styling */
 .modal-overlay {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
 }
 
-/* Success/Error states */
-.success {
-  @apply bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg;
+/* Status indicators */
+.status-indicator {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
 }
 
-.error {
-  @apply bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg;
+.status-success {
+  @apply bg-green-500/20 text-green-300 border border-green-500/30;
 }
 
-/* QR Code styling */
-.qr-container {
-  @apply bg-white p-6 rounded-xl shadow-lg border-2 border-gray-200;
+.status-warning {
+  @apply bg-yellow-500/20 text-yellow-300 border border-yellow-500/30;
 }
 
-/* Token card styling */
+.status-error {
+  @apply bg-red-500/20 text-red-300 border border-red-500/30;
+}
+
+.status-info {
+  @apply bg-blue-500/20 text-blue-300 border border-blue-500/30;
+}
+
+/* Enhanced token card styling */
 .token-card {
-  @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg;
+  @apply bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:scale-105;
 }
 
-/* Event card styling */
+/* Professional event card styling */
 .event-card {
-  @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200;
+  @apply bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 transition-all duration-300 hover:bg-white/15 hover:border-white/30 hover:shadow-2xl hover:-translate-y-1;
 }
 
-/* Blockchain status indicator */
+/* Blockchain connection indicators */
 .blockchain-status {
   @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
 }
 
 .blockchain-status.connected {
-  @apply bg-green-100 text-green-800;
+  @apply bg-green-500/20 text-green-300 border border-green-500/30;
 }
 
 .blockchain-status.disconnected {
-  @apply bg-red-100 text-red-800;
+  @apply bg-red-500/20 text-red-300 border border-red-500/30;
 }
 
-/* Transaction history styling */
+/* Professional transaction styling */
 .transaction-item {
-  @apply flex justify-between items-center py-3 border-b border-gray-200 last:border-b-0;
+  @apply flex justify-between items-center py-3 border-b border-white/10 last:border-b-0 transition-all duration-200 hover:bg-white/5 rounded px-2;
 }
 
 .transaction-type-purchase {
-  @apply text-green-600;
+  @apply text-green-400;
 }
 
 .transaction-type-transfer {
-  @apply text-blue-600;
+  @apply text-blue-400;
 }
 
-/* Wallet balance display */
+/* Enhanced wallet display */
 .wallet-balance {
-  @apply bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-4 shadow-lg;
+  @apply bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg p-4 backdrop-blur-sm;
 }
 
-/* Vendor QR display */
+/* Professional notification styles */
+.notification {
+  @apply fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg backdrop-blur-sm border;
+}
+
+.notification.success {
+  @apply bg-green-500/90 text-white border-green-400;
+}
+
+.notification.error {
+  @apply bg-red-500/90 text-white border-red-400;
+}
+
+.notification.info {
+  @apply bg-blue-500/90 text-white border-blue-400;
+}
+
+/* Professional vendor QR display */
 .vendor-qr {
-  @apply text-center p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300;
+  @apply text-center p-8 bg-white/5 rounded-xl border-2 border-dashed border-white/20 backdrop-blur-sm;
 }
 
-/* Blockchain connection animations */
-.pulse-green {
-  animation: pulse-green 2s infinite;
-}
-
-@keyframes pulse-green {
-  0%, 100% {
-    opacity: 1;
+/* Professional responsive utilities */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
-  50% {
-    opacity: 0.5;
+  
+  .glass, .glass-dark {
+    backdrop-filter: blur(10px);
   }
 }
 
-/* MetaMask button styles */
+/* Enhanced hover effects for interactive elements */
+.interactive-element {
+  @apply transition-all duration-300 cursor-pointer;
+}
+
+.interactive-element:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Professional MetaMask button styling */
 .metamask-btn {
   background: linear-gradient(135deg, #f6851b 0%, #e2761b 100%);
-  box-shadow: 0 4px 15px rgba(246, 133, 27, 0.4);
-}
-
-.metamask-btn:hover {
-  box-shadow: 0 6px 20px rgba(246, 133, 27, 0.6);
-  transform: translateY(-2px);
-}
-
-/* Network status indicators */
-.network-status {
-  position: relative;
-  overflow: hidden;
-}
-
-.network-status::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
-}
-
-/* Wallet connection flow */
-.setup-step {
+  box-shadow: 0 8px 25px rgba(246, 133, 27, 0.3);
   transition: all 0.3s ease;
 }
 
-.setup-step.completed {
-  border-color: #10b981;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+.metamask-btn:hover {
+  box-shadow: 0 12px 35px rgba(246, 133, 27, 0.5);
+  transform: translateY(-3px);
 }
 
-/* Blockchain info section */
-.blockchain-info {
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* World ID button styling */
+.worldid-btn {
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
 }
 
-/* Success message animation */
-.success-message {
-  animation: slideInUp 0.5s ease-out;
+.worldid-btn:hover {
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+  transform: translateY(-3px);
 }
 
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Enhanced selection states */
+.selected {
+  @apply ring-2 ring-blue-500 ring-opacity-50;
+}
+
+/* Professional loading states */
+.loading {
+  @apply opacity-50 pointer-events-none;
+}
+
+/* Enhanced focus states for accessibility */
+.focus-visible:focus {
+  @apply outline-none ring-2 ring-blue-500 ring-opacity-50;
+}
+
+/* Professional glow effects */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(147, 51, 234, 0.5);
+}
+
+/* Animate on scroll effects */
+.aos-animate {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+/* Professional layout utilities */
+.section-padding {
+  @apply py-16 px-4;
+}
+
+.section-padding-sm {
+  @apply py-8 px-4;
+}
+
+/* Enhanced text styles */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.text-glow {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Professional border styles */
+.border-gradient {
+  border-image: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(139, 92, 246, 0.5)) 1;
+}
+
+/* Enhanced z-index utilities */
+.z-modal {
+  z-index: 1000;
+}
+
+.z-notification {
+  z-index: 1100;
+}
+
+.z-tooltip {
+  z-index: 1200;
 }
