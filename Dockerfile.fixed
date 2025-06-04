@@ -1,0 +1,65 @@
+# Simplified Production Dockerfile for BanKa MVP
+# Fixed version that works with current environment
+
+# Stage 1: Build Frontend
+FROM node:20-alpine AS frontend-build
+WORKDIR /app
+
+# Copy frontend package files
+COPY frontend/package.json frontend/yarn.lock ./frontend/
+WORKDIR /app/frontend
+
+# Install dependencies
+RUN yarn install --frozen-lockfile
+
+# Copy frontend source and build
+COPY frontend/ ./
+RUN yarn build
+
+# Stage 2: Production Runtime
+FROM python:3.11-slim
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    nginx \
+    supervisor \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy backend requirements and install
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# Copy backend source
+COPY backend/ ./backend/
+
+# Copy built frontend
+COPY --from=frontend-build /app/frontend/build /var/www/html
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/sites-available/default
+RUN rm -f /etc/nginx/sites-enabled/default && \
+    ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
+
+# Copy supervisor configuration
+COPY supervisord.conf /etc/supervisor/conf.d/banka.conf
+
+# Copy startup script
+COPY startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
+
+# Create directories
+RUN mkdir -p /var/log/supervisor /app/logs
+
+# Environment
+ENV PYTHONUNBUFFERED=1
+ENV NODE_ENV=production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/api/health || exit 1
+
+EXPOSE 8080
+
+CMD ["/app/startup.sh"]

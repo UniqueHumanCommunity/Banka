@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: banka-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: banka_db
+    networks:
+      - banka-network
+
+  banka-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.fixed
+    container_name: banka-production
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+      - WEB3_PROVIDER_URL=https://bsc-testnet.nodereal.io/v1/e9a36765eb8a40b9bd12e680a1fd2bc5
+      - WALLET_MNEMONIC=flee cluster north scissors random attitude mutual strategy excuse debris consider uniform
+      - EVENT_FACTORY_ADDRESS=0xB03c97E3357f1D4D33E421164a5205E36bACD779
+      - JWT_SECRET=banka-secret-production-2024
+    depends_on:
+      - mongodb
+    networks:
+      - banka-network
+    volumes:
+      - app_logs:/app/logs
+
+volumes:
+  mongodb_data:
+  app_logs:
+
+networks:
+  banka-network:
+    driver: bridge
