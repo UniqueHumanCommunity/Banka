@@ -14,6 +14,9 @@ from web3 import Web3
 from eth_account import Account
 import json
 
+# Smart contract imports
+from contracts.simple_contract_manager import create_contract_manager
+
 # Web3 setup
 WEB3_PROVIDER_URL = os.environ.get('WEB3_PROVIDER_URL', 'https://bsc-testnet.nodereal.io/v1/e9a36765eb8a40b9bd12e680a1fd2bc5')
 WALLET_MNEMONIC = os.environ.get('WALLET_MNEMONIC', 'flee cluster north scissors random attitude mutual strategy excuse debris consider uniform')
