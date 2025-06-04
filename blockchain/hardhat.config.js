@@ -6,7 +6,7 @@ const BNB_TESTNET_URL = "https://bsc-testnet.nodereal.io/v1/e9a36765eb8a40b9bd12
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: {
-    version: "0.8.20",
+    version: "0.8.19",
     settings: {
       optimizer: {
         enabled: true,
