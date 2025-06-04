@@ -130,15 +130,30 @@ def verify_jwt_token(token: str):
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Get current authenticated user"""
-    payload = verify_jwt_token(credentials.credentials)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    
-    user = await db.users.find_one({"id": payload["user_id"]})
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    
-    return user
+    try:
+        payload = verify_jwt_token(credentials.credentials)
+        if not payload:
+            raise HTTPException(
+                status_code=401, 
+                detail="Token inválido ou expirado. Faça login novamente."
+            )
+        
+        user = await db.users.find_one({"id": payload["user_id"]})
+        if not user:
+            raise HTTPException(
+                status_code=401, 
+                detail="Usuário não encontrado. Faça login novamente."
+            )
+        
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in get_current_user: {e}")
+        raise HTTPException(
+            status_code=401, 
+            detail="Erro de autenticação. Faça login novamente."
+        )
 
 def hash_password(password: str) -> str:
     """Hash password using SHA256"""
