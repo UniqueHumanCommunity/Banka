@@ -114,7 +114,7 @@ def create_jwt_token(user_data: dict):
     payload = {
         "user_id": user_data["id"],
         "email": user_data["email"],
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(days=30)  # 30 days for demo
     }
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
