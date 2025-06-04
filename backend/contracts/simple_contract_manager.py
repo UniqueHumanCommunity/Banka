@@ -201,7 +201,7 @@ class ContractManager:
             nonce = self.w3.eth.get_transaction_count(self.deployer_account.address)
             print(f"🔢 Deployer nonce: {nonce}")
             
-            # Build constructor transaction
+            # Build constructor transaction with optimized gas settings
             constructor_txn = contract.constructor(
                 token_name,
                 token_symbol,
@@ -210,8 +210,8 @@ class ContractManager:
             ).build_transaction({
                 'from': self.deployer_account.address,
                 'nonce': nonce,
-                'gas': 2000000,  # Fixed gas limit
-                'gasPrice': gas_price,
+                'gas': 1500000,  # Reduced gas limit for simpler contract
+                'gasPrice': gas_price * 2,  # Higher gas price for faster confirmation
             })
             
             print(f"💸 Estimated gas cost: {self.w3.from_wei(constructor_txn['gas'] * gas_price, 'ether')} BNB")
