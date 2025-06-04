@@ -46,6 +46,8 @@ function App() {
   }, [token]);
 
   const loadUserProfile = async () => {
+    if (!token) return;
+    
     try {
       const response = await fetch(`${API_BASE}/api/profile`, {
         headers: {
@@ -59,7 +61,12 @@ function App() {
         setUser(data.user);
         setEvents(data.events || []);
       } else if (response.status === 401) {
+        // Token expired
+        alert('Sessão expirada. Faça login novamente.');
         logout();
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to load profile:', errorData);
       }
     } catch (error) {
       console.error('Failed to load profile:', error);
