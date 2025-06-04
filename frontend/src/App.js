@@ -1244,7 +1244,7 @@ function App() {
                           <div className="text-sm text-gray-600">
                             Estoque: {(token.initial_supply || 0) - (token.total_sold || 0)}
                           </div>
-                          <div className="text-xs mt-1">
+                          <div className="text-xs mt-1 mb-2">
                             <span className={`px-2 py-1 rounded-full ${
                               token.sale_mode === 'online' ? 'bg-blue-100 text-blue-800' :
                               token.sale_mode === 'offline' ? 'bg-green-100 text-green-800' :
@@ -1254,6 +1254,40 @@ function App() {
                                token.sale_mode === 'offline' ? 'Offline' : 'Online + Offline'}
                             </span>
                           </div>
+                          
+                          {/* Contract Address Display */}
+                          {token.contract_address && (
+                            <div className="text-xs text-gray-500 mb-2">
+                              <span className="font-mono">{token.contract_address.substr(0, 12)}...</span>
+                              {token.deployment_status && (
+                                <span className={`ml-2 px-1 py-0.5 rounded text-xs ${
+                                  token.deployment_status === 'deployed' ? 'bg-green-100 text-green-700' :
+                                  token.deployment_status === 'failed' ? 'bg-red-100 text-red-700' :
+                                  'bg-yellow-100 text-yellow-700'
+                                }`}>
+                                  {token.deployment_status === 'deployed' ? '✅ Deployed' :
+                                   token.deployment_status === 'failed' ? '❌ Failed' : 
+                                   '⏳ Mock'}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* MetaMask Button for Dashboard */}
+                          <button
+                            onClick={() => addTokenToMetaMask(
+                              token.contract_address,
+                              token.symbol || token.name?.toUpperCase().substr(0, 5) || 'TOKEN',
+                              token.full_name || token.name,
+                              token.decimals || 18
+                            )}
+                            disabled={!token.contract_address || token.contract_address.startsWith('0x000000') || loading || token.deployment_status !== 'deployed'}
+                            className="w-full flex items-center justify-center space-x-1 px-2 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={token.deployment_status !== 'deployed' ? 'Token não disponível na blockchain' : 'Adicionar token ao MetaMask'}
+                          >
+                            <span>🦊</span>
+                            <span>MetaMask</span>
+                          </button>
                         </div>
                       ))}
                     </div>
