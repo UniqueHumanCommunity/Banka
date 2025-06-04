@@ -80,6 +80,7 @@ function App() {
       setPublicEvents(data.events || []);
     } catch (error) {
       console.error('Failed to load public events:', error);
+      setPublicEvents([]); // Ensure it's always an array
     }
   };
 
