@@ -502,24 +502,82 @@ async def get_event(event_id: str, current_user: dict = Depends(get_current_user
 
 @app.post("/api/events/{event_id}/tokens")
 async def create_token(event_id: str, token: TokenCreate, current_user: dict = Depends(get_current_user)):
-    """Create a token for an event (only event owner)"""
+    """Create a token for an event with real smart contract deployment"""
     try:
         # Find event and verify ownership
         event = await db.events.find_one({"id": event_id, "organizer_id": current_user["id"]})
         if not event:
             raise HTTPException(status_code=404, detail="Event not found or access denied")
         
+        # Create token symbol based on event and token name
+        event_prefix = ''.join(c.upper() for c in event["name"] if c.isalnum())[:5]
+        token_prefix = ''.join(c.upper() for c in token.name if c.isalnum())[:5]
+        token_symbol = f"{event_prefix}{token_prefix}"
+        
+        # Create full token name
+        full_token_name = f"{event['name']} - {token.name}"
+        
+        # Deploy real smart contract if contract manager is available
+        contract_address = None
+        contract_abi = None
+        deployment_tx_hash = None
+        deployment_status = "pending"
+        
+        if contract_manager and contract_manager.is_connected():
+            try:
+                print(f"🚀 Deploying smart contract for token: {full_token_name}")
+                
+                # Deploy the contract
+                deployment_result = await contract_manager.deploy_simple_token(
+                    token_name=full_token_name,
+                    token_symbol=token_symbol,
+                    total_supply=token.initial_supply,
+                    owner_address=current_user["wallet_address"]
+                )
+                
+                if deployment_result["success"]:
+                    contract_address = deployment_result["contract_address"]
+                    contract_abi = deployment_result["abi"]
+                    deployment_tx_hash = deployment_result["transaction_hash"]
+                    deployment_status = "deployed"
+                    print(f"✅ Contract deployed successfully at: {contract_address}")
+                else:
+                    print(f"❌ Contract deployment failed: {deployment_result['error']}")
+                    # Fallback to mock address but log the error
+                    contract_address = f"0x{uuid.uuid4().hex[:40]}"
+                    deployment_status = "failed"
+                    
+            except Exception as e:
+                print(f"❌ Contract deployment error: {e}")
+                # Fallback to mock address
+                contract_address = f"0x{uuid.uuid4().hex[:40]}"
+                deployment_status = "failed"
+        else:
+            # Fallback to mock address when contract manager is not available
+            contract_address = f"0x{uuid.uuid4().hex[:40]}"
+            deployment_status = "mock"
+            print("⚠️ Contract manager not available, using mock address")
+        
         # Create token data
         token_data = {
             "id": str(uuid.uuid4()),
             "name": token.name,
+            "full_name": full_token_name,
+            "symbol": token_symbol,
             "price_cents": token.price_cents,
             "initial_supply": token.initial_supply,
             "total_sold": 0,
             "sale_mode": token.sale_mode,
-            "contract_address": f"0x{uuid.uuid4().hex[:40]}",  # Mock address for MVP
+            "contract_address": contract_address,
+            "contract_abi": contract_abi,
+            "deployment_tx_hash": deployment_tx_hash,
+            "deployment_status": deployment_status,
+            "decimals": 18,
             "created_at": datetime.datetime.utcnow(),
-            "is_active": True
+            "is_active": True,
+            "event_id": event_id,
+            "event_name": event["name"],
+            "owner_address": current_user["wallet_address"]
         }
         
         # Update event with new token
@@ -528,14 +586,75 @@ async def create_token(event_id: str, token: TokenCreate, current_user: dict = D
             {"$push": {"tokens": token_data}}
         )
         
+        # Also store token separately for easier querying
+        await db.tokens.insert_one(token_data.copy())
+        
         return {
             "token": token_data,
-            "message": "Token created successfully"
+            "message": f"Token created successfully! Contract {'deployed' if deployment_status == 'deployed' else 'created'} at {contract_address}"
         }
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create token: {str(e)}")
+
+# Add endpoint to get contract info
+@app.get("/api/tokens/{token_address}")
+async def get_token_info(token_address: str):
+    """Get token information from smart contract or database"""
+    try:
+        # First check database
+        token = await db.tokens.find_one({"contract_address": token_address})
+        if not token:
+            raise HTTPException(status_code=404, detail="Token not found")
+        
+        token.pop("_id", None)
+        
+        # If we have a real contract and contract manager, get live data
+        if (contract_manager and 
+            contract_manager.is_connected() and 
+            token.get("deployment_status") == "deployed" and 
+            token.get("contract_abi")):
+            
+            try:
+                live_info = await contract_manager.get_token_info(
+                    token_address, 
+                    token["contract_abi"]
+                )
+                if live_info:
+                    token.update(live_info)
+            except Exception as e:
+                print(f"Failed to get live token info: {e}")
+        
+        return {"token": token}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get token info: {str(e)}")
+
+# Add endpoint to get all tokens for MetaMask integration
+@app.get("/api/tokens")
+async def get_all_tokens():
+    """Get all tokens for MetaMask integration"""
+    try:
+        tokens = []
+        async for token in db.tokens.find({"is_active": True}):
+            token.pop("_id", None)
+            # Only include essential data for MetaMask
+            token_info = {
+                "address": token["contract_address"],
+                "name": token.get("full_name", token["name"]),
+                "symbol": token.get("symbol", token["name"][:5].upper()),
+                "decimals": token.get("decimals", 18),
+                "image": None,  # Could add token image URL here
+                "event_name": token.get("event_name", ""),
+                "deployment_status": token.get("deployment_status", "unknown")
+            }
+            tokens.append(token_info)
+        
+        return {"tokens": tokens}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get tokens: {str(e)}")
 
 @app.post("/api/events/{event_id}/cashiers")
 async def add_cashier(event_id: str, cashier_data: dict, current_user: dict = Depends(get_current_user)):
