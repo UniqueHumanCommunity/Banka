@@ -1,0 +1,42 @@
+{
+  "name": "banka-mvp",
+  "version": "1.0.0",
+  "description": "Blockchain Event Payment System - MVP 100% Funcional",
+  "scripts": {
+    "dev": "concurrently \"cd backend && uvicorn server:app --reload --host 0.0.0.0 --port 8001\" \"cd frontend && npm start\"",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && uvicorn server:app --host 0.0.0.0 --port 8001",
+    "test": "cd backend && pytest && cd ../frontend && npm test",
+    "deploy": "./deploy.sh deploy",
+    "deploy:build": "./deploy.sh build",
+    "deploy:start": "./deploy.sh start",
+    "deploy:stop": "./deploy.sh stop",
+    "deploy:logs": "./deploy.sh logs",
+    "deploy:health": "./deploy.sh health",
+    "deploy:cleanup": "./deploy.sh cleanup"
+  },
+  "keywords": [
+    "blockchain",
+    "events",
+    "payment",
+    "smart-contracts",
+    "metamask",
+    "web3",
+    "bnb-chain",
+    "erc20",
+    "mvp"
+  ],
+  "author": "BanKa Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/banka-mvp"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
