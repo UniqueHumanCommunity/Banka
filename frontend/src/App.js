@@ -1137,14 +1137,14 @@ function App() {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify(formData),
+            body: JSON.stringify(offlineFormData),
           });
           
           const data = await response.json();
           if (response.ok) {
             alert('✅ Tokens enviados para a carteira do usuário com sucesso!');
             setShowOfflineTransfer(false);
-            setFormData({ user_email: '', token_address: '', amount: '', cashier_id: 'main' });
+            setOfflineFormData({ user_email: '', token_address: '', amount: '', cashier_id: 'main' });
           } else {
             alert('❌ Erro: ' + data.detail);
           }
