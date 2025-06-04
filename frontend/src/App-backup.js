@@ -314,7 +314,7 @@ function App() {
           ) : (
             <div className="flex items-center space-x-4">
               <div className="text-white text-sm">
-                Olá, {user.name} (ADMIN)
+                Olá, {user.name}
               </div>
               <button
                 onClick={() => setCurrentView('profile')}
@@ -356,12 +356,6 @@ function App() {
             Revolucione a experiência de pagamento em eventos com tokens digitais seguros na blockchain.
             Sem filas, sem dinheiro físico, apenas tecnologia.
           </p>
-          
-          <div className="bg-orange-500/20 border border-orange-400 rounded-lg p-4 max-w-2xl mx-auto">
-            <p className="text-orange-200 font-medium">
-              🚀 <strong>MODO APRESENTAÇÃO ATIVO:</strong> Todos os usuários têm privilégios de administrador
-            </p>
-          </div>
         </div>
 
         {user ? (
@@ -384,7 +378,7 @@ function App() {
               <div className="text-6xl mb-4">🎫</div>
               <h3 className="text-2xl font-bold text-white mb-4">Marketplace</h3>
               <p className="text-blue-200">
-                Compre e transfira tokens
+                Compre tokens de eventos
               </p>
             </div>
 
@@ -625,12 +619,22 @@ function App() {
         <div className="bg-white shadow-sm">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-800">Meu Perfil</h1>
-            <button
-              onClick={() => setCurrentView('home')}
-              className="px-4 py-2 text-blue-600 hover:text-blue-800"
-            >
-              ← Voltar
-            </button>
+            <div className="flex space-x-4">
+              {user && (
+                <button
+                  onClick={() => alert('🏪 Sistema de Caixa Offline:\n\nFuncionalidade implementada no backend!\n\nCaixas podem:\n✅ Receber pagamento em dinheiro/cartão\n✅ Enviar tokens diretamente para carteira do participante\n✅ Usar endpoint /api/transfer/offline\n\nVeja a API documentation para detalhes.')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  💰 Demo Caixa Offline
+                </button>
+              )}
+              <button
+                onClick={() => setCurrentView('home')}
+                className="px-4 py-2 text-blue-600 hover:text-blue-800"
+              >
+                ← Voltar
+              </button>
+            </div>
           </div>
         </div>
 
@@ -816,7 +820,7 @@ function App() {
     );
   };
 
-  // Dashboard Component
+  // Dashboard Component (simplified for space)
   const DashboardPage = () => {
     const [showCreateEvent, setShowCreateEvent] = useState(false);
     const [showCreateToken, setShowCreateToken] = useState(false);
@@ -1061,18 +1065,7 @@ function App() {
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {event.tokens.map((token) => (
                         <div key={token.id} className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="font-medium">{token.name}</div>
-                            <a
-                              href={`https://testnet.bscscan.com/address/${token.contract_address}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-500 hover:text-blue-700"
-                              title="Ver contrato no BSCScan"
-                            >
-                              ℹ️
-                            </a>
-                          </div>
+                          <div className="font-medium">{token.name}</div>
                           <div className="text-sm text-gray-600">
                             R$ {(token.price_cents / 100).toFixed(2)}
                           </div>
@@ -1119,21 +1112,20 @@ function App() {
     );
   };
 
-  // Marketplace Component with offline transfer
+  // Marketplace Component (enhanced with offline transfer)
   const MarketplacePage = () => {
     const [showOfflineTransfer, setShowOfflineTransfer] = useState(false);
     const [offlineFormData, setOfflineFormData] = useState({
       user_email: '',
       token_address: '',
       amount: '',
-      cashier_id: 'Transferência Livre'
+      cashier_id: 'main'
     });
 
-    const OfflineTransferForm = () => {
       const handleSubmit = async (e) => {
         e.preventDefault();
         if (!user) {
-          alert('Você precisa estar logado para realizar transferências');
+          alert('Você precisa estar logado como caixa para realizar transferências offline');
           return;
         }
 
@@ -1150,9 +1142,9 @@ function App() {
           
           const data = await response.json();
           if (response.ok) {
-            alert('✅ Tokens transferidos com sucesso!');
+            alert('✅ Tokens enviados para a carteira do usuário com sucesso!');
             setShowOfflineTransfer(false);
-            setOfflineFormData({ user_email: '', token_address: '', amount: '', cashier_id: 'Transferência Livre' });
+            setOfflineFormData({ user_email: '', token_address: '', amount: '', cashier_id: 'main' });
           } else {
             alert('❌ Erro: ' + data.detail);
           }
@@ -1165,18 +1157,18 @@ function App() {
       return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-            <h3 className="text-2xl font-bold mb-6">🎁 Transferência Livre de Tokens</h3>
+            <h3 className="text-2xl font-bold mb-6">💰 Caixa Offline - Enviar Tokens</h3>
             <p className="text-gray-600 mb-6 text-sm">
-              <strong>Modo Admin:</strong> Transfira qualquer quantidade de tokens para qualquer usuário instantaneamente.
+              Envie tokens diretamente para a carteira de um participante após receber pagamento em dinheiro ou cartão.
             </p>
             
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">📧 Email do Destinatário</label>
+                <label className="block text-sm font-medium mb-2">📧 Email do Participante</label>
                 <input
                   type="email"
                   required
-                  placeholder="usuario@email.com"
+                  placeholder="participante@email.com"
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
                   value={offlineFormData.user_email}
                   onChange={(e) => setOfflineFormData({...offlineFormData, user_email: e.target.value})}
@@ -1188,8 +1180,8 @@ function App() {
                 <select
                   required
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
-                  value={offlineFormData.token_address}
-                  onChange={(e) => setOfflineFormData({...offlineFormData, token_address: e.target.value})}
+                  value={formData.token_address}
+                  onChange={(e) => setFormData({...formData, token_address: e.target.value})}
                 >
                   <option value="">Selecione um token</option>
                   {publicEvents.map(event => 
@@ -1208,27 +1200,28 @@ function App() {
                   type="number"
                   required
                   min="1"
-                  placeholder="Ex: 10"
+                  placeholder="Ex: 2"
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
-                  value={offlineFormData.amount}
-                  onChange={(e) => setOfflineFormData({...offlineFormData, amount: e.target.value})}
+                  value={formData.amount}
+                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
                 />
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">🏪 Origem/Motivo</label>
+                <label className="block text-sm font-medium mb-2">🏪 Caixa/Estação</label>
                 <input
                   type="text"
-                  placeholder="Ex: Gift, Promoção, Admin Transfer"
+                  placeholder="Ex: Caixa Principal, Bar Norte"
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
-                  value={offlineFormData.cashier_id}
-                  onChange={(e) => setOfflineFormData({...offlineFormData, cashier_id: e.target.value})}
+                  value={formData.cashier_id}
+                  onChange={(e) => setFormData({...formData, cashier_id: e.target.value})}
                 />
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-blue-800">
-                  <strong>🔓 Modo Apresentação:</strong> Esta transferência é livre e não requer validação de pagamento.
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-yellow-800">
+                  <strong>⚠️ Importante:</strong> Certifique-se de que recebeu o pagamento antes de enviar os tokens. 
+                  Esta ação não pode ser desfeita.
                 </p>
               </div>
 
@@ -1245,7 +1238,7 @@ function App() {
                   disabled={loading}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                 >
-                  {loading ? 'Transferindo...' : '🚀 Transferir'}
+                  {loading ? 'Enviando...' : '🚀 Enviar Tokens'}
                 </button>
               </div>
             </form>
@@ -1265,7 +1258,7 @@ function App() {
                   onClick={() => setShowOfflineTransfer(true)}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                 >
-                  🎁 Transferir Tokens
+                  💰 Caixa Offline
                 </button>
               )}
               <button
@@ -1279,12 +1272,12 @@ function App() {
         </div>
 
         <div className="container mx-auto px-4 py-8">
-          {/* Info Cards */}
+          {/* Info Cards for Different Purchase Methods */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-6">
               <h3 className="text-xl font-bold mb-2">💳 Compra Online</h3>
               <p className="text-blue-100 mb-4">
-                Participantes podem comprar tokens diretamente com criptomoedas
+                Participantes podem comprar tokens diretamente com criptomoedas (BNB, BUSD, USDT)
               </p>
               <div className="text-sm bg-white/20 rounded-lg p-3">
                 <p>✅ Pagamento instantâneo</p>
@@ -1294,14 +1287,14 @@ function App() {
             </div>
 
             <div className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl p-6">
-              <h3 className="text-xl font-bold mb-2">🎁 Transferência Livre</h3>
+              <h3 className="text-xl font-bold mb-2">🏪 Compra Offline</h3>
               <p className="text-green-100 mb-4">
-                Durante a apresentação, qualquer usuário pode transferir tokens livremente
+                Caixas do evento podem receber dinheiro/cartão e enviar tokens diretamente
               </p>
               <div className="text-sm bg-white/20 rounded-lg p-3">
-                <p>✅ Transferência instantânea</p>
-                <p>✅ Sem validação de pagamento</p>
-                <p>✅ Modo admin ativo</p>
+                <p>✅ Aceita dinheiro físico</p>
+                <p>✅ Aceita cartão de crédito</p>
+                <p>✅ Tokens enviados na hora</p>
               </div>
             </div>
           </div>
@@ -1336,19 +1329,8 @@ function App() {
                         <div key={token.id} className="bg-gray-50 rounded-lg p-4 border">
                           <div className="flex justify-between items-start mb-2">
                             <div className="font-medium text-lg">{token.name}</div>
-                            <div className="flex items-center space-x-2">
-                              <div className="text-lg font-bold text-green-600">
-                                R$ {(token.price_cents / 100).toFixed(2)}
-                              </div>
-                              <a
-                                href={`https://testnet.bscscan.com/address/${token.contract_address}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:text-blue-700 text-lg"
-                                title="Ver contrato no BSCScan"
-                              >
-                                ℹ️
-                              </a>
+                            <div className="text-lg font-bold text-green-600">
+                              R$ {(token.price_cents / 100).toFixed(2)}
                             </div>
                           </div>
                           
@@ -1368,25 +1350,21 @@ function App() {
                             </span>
                           </div>
                           
-                          <div className="text-xs text-gray-500 mb-3 font-mono">
-                            {token.contract_address?.substr(0, 12)}...
-                          </div>
-                          
                           <div className="flex gap-2">
                             {(token.sale_mode === 'online' || token.sale_mode === 'both') && user && (
                               <button className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                                💳 Comprar
+                                💳 Comprar Online
                               </button>
                             )}
-                            {user && (
+                            {(token.sale_mode === 'offline' || token.sale_mode === 'both') && user && (
                               <button 
                                 onClick={() => {
-                                  setOfflineFormData(prev => ({...prev, token_address: token.contract_address}));
+                                  setFormData(prev => ({...prev, token_address: token.contract_address}));
                                   setShowOfflineTransfer(true);
                                 }}
                                 className="flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                               >
-                                🎁 Transferir
+                                🏪 Caixa Offline
                               </button>
                             )}
                             {!user && (
