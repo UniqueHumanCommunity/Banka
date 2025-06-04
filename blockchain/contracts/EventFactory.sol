@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.19;
 
 import "./EventContract.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -24,8 +24,6 @@ contract EventFactory is Ownable {
         address indexed organizer,
         uint256 eventDate
     );
-    
-    constructor() Ownable(msg.sender) {}
     
     // Create a new event contract
     function createEvent(
