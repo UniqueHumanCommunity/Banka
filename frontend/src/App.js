@@ -1115,14 +1115,12 @@ function App() {
   // Marketplace Component (enhanced with offline transfer)
   const MarketplacePage = () => {
     const [showOfflineTransfer, setShowOfflineTransfer] = useState(false);
-
-    const OfflineTransferForm = () => {
-      const [formData, setFormData] = useState({
-        user_email: '',
-        token_address: '',
-        amount: '',
-        cashier_id: 'main'
-      });
+    const [offlineFormData, setOfflineFormData] = useState({
+      user_email: '',
+      token_address: '',
+      amount: '',
+      cashier_id: 'main'
+    });
 
       const handleSubmit = async (e) => {
         e.preventDefault();
