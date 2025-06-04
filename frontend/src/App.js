@@ -238,6 +238,46 @@ function App() {
     window.open('https://testnet.binance.org/faucet-smart', '_blank');
   };
 
+  // MetaMask Token Addition Function
+  const addTokenToMetaMask = async (tokenAddress, tokenSymbol, tokenName, decimals = 18) => {
+    if (typeof window.ethereum === 'undefined') {
+      showErrorMessage('MetaMask não está instalado! Por favor, instale o MetaMask para continuar.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // First ensure user is connected to the correct network
+      await addBNBTestnetNetwork();
+      
+      // Add token to MetaMask
+      const wasAdded = await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: tokenAddress,
+            symbol: tokenSymbol,
+            decimals: decimals,
+            image: null, // Could add token image URL here
+          },
+        },
+      });
+
+      if (wasAdded) {
+        showSuccessMessage(`Token ${tokenSymbol} adicionado ao MetaMask com sucesso!`);
+      } else {
+        showErrorMessage('Token não foi adicionado ao MetaMask.');
+      }
+    } catch (error) {
+      console.error('Error adding token to MetaMask:', error);
+      showErrorMessage('Erro ao adicionar token ao MetaMask: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const showSuccessMessage = (message) => {
     const notification = document.createElement('div');
     notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-bounce';
