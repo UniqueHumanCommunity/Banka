@@ -235,10 +235,19 @@ async def register_user(user: UserRegister):
         if existing_user:
             raise HTTPException(status_code=400, detail="User already exists with this email")
         
-        # Create real wallet on BNB Chain
-        wallet = create_real_wallet()
-        if not wallet:
-            raise HTTPException(status_code=500, detail="Failed to create blockchain wallet")
+        # Create real wallet on BNB Chain (only if no external wallet provided)
+        external_wallet = getattr(user, 'external_wallet', None)
+        if external_wallet:
+            wallet = {
+                "address": external_wallet,
+                "private_key": "EXTERNAL_WALLET",  # Don't store external private keys
+                "type": "external"
+            }
+        else:
+            wallet = create_real_wallet()
+            if not wallet:
+                raise HTTPException(status_code=500, detail="Failed to create blockchain wallet")
+            wallet["type"] = "custodial"
         
         # Hash password
         hashed_password = hash_password(user.password)
@@ -250,7 +259,8 @@ async def register_user(user: UserRegister):
             "password": hashed_password,
             "phone": user.phone,
             "wallet_address": wallet["address"],
-            "wallet_private_key": wallet["private_key"],  # Encrypted in production
+            "wallet_private_key": wallet["private_key"],
+            "wallet_type": wallet["type"],
             "created_at": datetime.datetime.utcnow(),
             "is_active": True,
             "events_created": [],
@@ -271,7 +281,8 @@ async def register_user(user: UserRegister):
                 "id": user_data["id"],
                 "name": user_data["name"],
                 "email": user_data["email"],
-                "wallet_address": user_data["wallet_address"]
+                "wallet_address": user_data["wallet_address"],
+                "wallet_type": user_data["wallet_type"]
             },
             "token": token,
             "message": "User registered successfully with blockchain wallet"
@@ -295,6 +306,20 @@ async def login_user(credentials: UserLogin):
         if user["password"] != hashed_password:
             raise HTTPException(status_code=401, detail="Invalid email or password")
         
+        # Update external wallet if provided
+        external_wallet = getattr(credentials, 'external_wallet', None)
+        if external_wallet and external_wallet != user.get("wallet_address"):
+            await db.users.update_one(
+                {"id": user["id"]},
+                {"$set": {
+                    "wallet_address": external_wallet,
+                    "wallet_type": "external",
+                    "wallet_private_key": "EXTERNAL_WALLET"
+                }}
+            )
+            user["wallet_address"] = external_wallet
+            user["wallet_type"] = "external"
+        
         # Create JWT token
         token = create_jwt_token(user)
         
@@ -303,7 +328,8 @@ async def login_user(credentials: UserLogin):
                 "id": user["id"],
                 "name": user["name"],
                 "email": user["email"],
-                "wallet_address": user["wallet_address"]
+                "wallet_address": user["wallet_address"],
+                "wallet_type": user.get("wallet_type", "custodial")
             },
             "token": token,
             "message": "Login successful"
