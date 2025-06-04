@@ -101,3 +101,98 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Passar o aplicativo por um ajuste fino e implementar os contratos inteligentes para cada token onchain. Ao lado de cada token, acrescentar um botão para facilitar a inclusão do Token na carteira Metamask"
+
+backend:
+  - task: "Create real ERC-20 smart contracts for tokens"
+    implemented: false
+    working: "NA"
+    file: "backend/contracts/"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to create smart contract infrastructure and deployment system"
+
+  - task: "Update token creation to deploy real contracts"
+    implemented: false
+    working: "NA" 
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Currently using mock addresses, need to integrate contract deployment"
+
+  - task: "Add smart contract compilation and deployment endpoints"
+    implemented: false
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need APIs for contract management"
+
+frontend:
+  - task: "Add MetaMask 'Add Token' buttons for each token"
+    implemented: false
+    working: "NA"
+    file: "frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Need to implement wallet_watchAsset functionality"
+
+  - task: "Update token display with real contract addresses"
+    implemented: false
+    working: "NA"
+    file: "frontend/src/App.js" 
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "Currently showing mock addresses, need real contract integration"
+
+  - task: "Fine-tune UI/UX improvements"
+    implemented: false
+    working: "NA"
+    file: "frontend/src/App.js"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+        - working: "NA"
+          agent: "main"
+          comment: "General improvements to user experience"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Create real ERC-20 smart contracts for tokens"
+    - "Update token creation to deploy real contracts"
+    - "Add MetaMask 'Add Token' buttons for each token"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    - agent: "main"
+      message: "Starting implementation of smart contracts and MetaMask integration. Current app is healthy and running."
